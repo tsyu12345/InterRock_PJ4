@@ -5,7 +5,8 @@ import sys
 import os 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
-from selenium.webdriver.support.select import Select
+#from selenium.webdriver.support.select import Select
+from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup as bs
 
 class URLScrap():
@@ -90,14 +91,33 @@ class URLScrap():
             self.sheet.cell(row=1, column=col+1, value=menu)
         self.book.save(self.path)
     
-    def search(self, area):
+    def search(self, area):#検索と条件指定
         self.driver.get('https://www.ekiten.jp/')
         sr_box = self.driver.find_element_by_css_selector('#select_form_st_com')
         sr_box.send_keys(area)
         sr_btn = self.driver.find_element_by_css_selector('#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
-    
-    def scrap(self):
+        actions = ActionChains(self.driver)
+        actions.move_to_element(self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > a')).perform()
+        #ここから市区町村以下、駅とうの絞り込みを行う
+        html = self.driver.page_source
+        soup = bs(html, 'lxml')
+        selector = 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a'
+        city_list = soup.select(selector)
+        print(len(city_list))
+        print(city_list)
+        city_url = self.return_url(city_list, 'https://www.ekiten.jp')
+        print(city_url)
+        for city in city_url:
+            self.driver.get(city)
+            station_url = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
+            for station in station_url:
+                self.driver.get(station)
+                dist_url = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(4) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+        print(city_url)
+        print(station_url)
+        print(dist_url)
+        """
         while True:
             html = self.driver.page_source
             soup = bs(html, 'lxml')
@@ -110,7 +130,7 @@ class URLScrap():
             except NoSuchElementException:
                 break
         self.driver.quit()
-        
+        """
     def write_url(self, a_tag_list):
         url_list = []
         for a in a_tag_list:
@@ -120,12 +140,25 @@ class URLScrap():
             print(row)
             self.sheet.cell(row=row, column=13, value=url)
         self.book.save(self.path)
+    
+    def extraction_url(self, selector, pre_url):
+        html = self.driver.page_source
+        soup = bs(html, 'lxml')
+        tag_list = soup.select(selector)
+        url_list = self.return_url(tag_list, pre_url)    
+        return url_list
 
+    def return_url(self, a_tag_list, pre_url):
+        url_list = []
+        for a in a_tag_list:
+            url_list.append(pre_url+a.get('href'))
+        return url_list
 if __name__ == "__main__":
     scraping = URLScrap('./test.xlsx')
     scraping.book_init()
     scraping.search('徳島県')
-    scraping.scrap()
+    #scraping.scrap()
+    scraping.driver.quit()
 
             
 
