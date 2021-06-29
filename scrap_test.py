@@ -2,7 +2,9 @@ import openpyxl as px
 import PySimpleGUI as gui
 import re 
 import sys
-import os 
+import os
+import threading as th
+import time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 #from selenium.webdriver.support.select import Select
@@ -91,32 +93,49 @@ class URLScrap():
             self.sheet.cell(row=1, column=col+1, value=menu)
         self.book.save(self.path)
     
+    def junle_list(self):
+        list = [
+            "リラク・ボディケア", 
+            "ヘアサロン・ネイル", 
+            "学習塾・予備校", 
+            "習い事・スクール", 
+            "歯科・矯正歯科", 
+            "医院・クリニック・ヘルスケア", 
+            "ショッピング", 
+            "お出かけ・レジャー", 
+            "リサイクル・中古買取り", 
+            "ペット・動物", 
+            "出張デリバリー・生活サービス", 
+            "住宅・不動産",
+            "冠婚葬祭"
+            ]
+        return list
+
     def search(self, area):#検索と条件指定
+        driver_action = ActionChains(self.driver)
         self.driver.get('https://www.ekiten.jp/')
         sr_box = self.driver.find_element_by_css_selector('#select_form_st_com')
         sr_box.send_keys(area)
         sr_btn = self.driver.find_element_by_css_selector('#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
-        actions = ActionChains(self.driver)
-        actions.move_to_element(self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > a')).perform()
-        #ここから市区町村以下、駅とうの絞り込みを行う
-        html = self.driver.page_source
-        soup = bs(html, 'lxml')
-        selector = 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a'
-        city_list = soup.select(selector)
-        print(len(city_list))
-        print(city_list)
-        city_url = self.return_url(city_list, 'https://www.ekiten.jp')
-        print(city_url)
-        for city in city_url:
+    
+        city_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp/')
+        for city in city_list:
             self.driver.get(city)
-            station_url = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
-            for station in station_url:
-                self.driver.get(station)
-                dist_url = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(4) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-        print(city_url)
-        print(station_url)
-        print(dist_url)
+            print(city)
+            try:#区町村の欄が存在するかどうか判定するための変数                                  
+                select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
+            except NoSuchElementException:#区町村の選択肢がない時の処理系       
+                station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp/')
+                print(station_list)
+            else:#区町村の選択がある場合の処理系
+                citylist_2 = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp/')
+                print(citylist_2)
+                for city2 in citylist_2:
+                    self.driver.get(city2)
+                    station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp/')
+                    print(station_list)
+    def scrap_url(self):
         """
         while True:
             html = self.driver.page_source
@@ -144,8 +163,9 @@ class URLScrap():
     def extraction_url(self, selector, pre_url):
         html = self.driver.page_source
         soup = bs(html, 'lxml')
-        tag_list = soup.select(selector)
-        url_list = self.return_url(tag_list, pre_url)    
+        s = soup.select(selector)
+        #print(s)
+        url_list = self.return_url(s, pre_url)    
         return url_list
 
     def return_url(self, a_tag_list, pre_url):
@@ -153,6 +173,7 @@ class URLScrap():
         for a in a_tag_list:
             url_list.append(pre_url+a.get('href'))
         return url_list
+
 if __name__ == "__main__":
     scraping = URLScrap('./test.xlsx')
     scraping.book_init()
