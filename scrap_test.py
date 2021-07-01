@@ -126,15 +126,23 @@ class URLScrap():
             try:#区町村の欄が存在するかどうか判定するための変数                                  
                 select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
             except NoSuchElementException:#区町村の選択肢がない時の処理系       
-                station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp/')
+                html = self.driver.page_source
+                soup = bs(html, 'lxml')
+                atags = soup.select('#tab_point_0 > div > div > ul > li > a')
+                station_list = self.return_url(atags, 'https://www.ekiten.jp/')
                 print(station_list)
+
             else:#区町村の選択がある場合の処理系
                 citylist_2 = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp/')
                 print(citylist_2)
                 for city2 in citylist_2:
                     self.driver.get(city2)
-                    station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp/')
+                    html = self.driver.page_source
+                    soup = bs(html, 'lxml')
+                    atags = soup.select('#tab_point_0 > div > div > ul > li > a')
+                    station_list = self.return_url(atags, 'https://www.ekiten.jp/')
                     print(station_list)
+    
     def scrap_url(self):
         """
         while True:
