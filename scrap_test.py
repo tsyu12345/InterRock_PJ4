@@ -1,3 +1,4 @@
+from base64 import standard_b64decode
 import openpyxl as px 
 import PySimpleGUI as gui
 import re 
@@ -112,37 +113,36 @@ class URLScrap():
         return list
 
     def search(self, area):#検索と条件指定
-        driver_action = ActionChains(self.driver)
+        #driver_action = ActionChains(self.driver)
         self.driver.get('https://www.ekiten.jp/')
         sr_box = self.driver.find_element_by_css_selector('#select_form_st_com')
         sr_box.send_keys(area)
         sr_btn = self.driver.find_element_by_css_selector('#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
     
-        city_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp/')
+        city_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
         for city in city_list:
             self.driver.get(city)
             print(city)
-            try:#区町村の欄が存在するかどうか判定するための変数                                  
-                select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
-            except NoSuchElementException:#区町村の選択肢がない時の処理系       
-                html = self.driver.page_source
-                soup = bs(html, 'lxml')
-                atags = soup.select('#tab_point_0 > div > div > ul > li > a')
-                station_list = self.return_url(atags, 'https://www.ekiten.jp/')
+            time.sleep(1)                            
+            select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text 
+            if select in '駅・バス停から探す ':#区町村選択がない場合の処理系
+                station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
                 print(station_list)
-
-            else:#区町村の選択がある場合の処理系
-                citylist_2 = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp/')
-                print(citylist_2)
-                for city2 in citylist_2:
+                #another process here
+            else:#区町村選択がある場合の処理系
+                city_list2 = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                for city2 in city_list2:
                     self.driver.get(city2)
-                    html = self.driver.page_source
-                    soup = bs(html, 'lxml')
-                    atags = soup.select('#tab_point_0 > div > div > ul > li > a')
-                    station_list = self.return_url(atags, 'https://www.ekiten.jp/')
+                    time.sleep(1)                      
+                    station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
+                    if station_list == []:
+                        print('バス！')
+                        station_list = self.extraction_url('#tab_point_1 > div > div > ul > li > a', 'https://www.ekiten.jp')
                     print(station_list)
-    
+                    #another process here
+
+
     def scrap_url(self):
         """
         while True:
