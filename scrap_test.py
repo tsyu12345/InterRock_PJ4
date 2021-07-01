@@ -2,7 +2,8 @@ import openpyxl as px
 import PySimpleGUI as gui
 import re 
 import sys
-import os 
+import os
+import threding as th
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 #from selenium.webdriver.support.select import Select
@@ -110,13 +111,11 @@ class URLScrap():
         print(city_url)
         for city in city_url:
             self.driver.get(city)
-            station_url = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
-            for station in station_url:
-                self.driver.get(station)
-                dist_url = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(4) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-        print(city_url)
-        print(station_url)
-        print(dist_url)
+            junle1 = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
+            if junle1 == '駅・バス停から探す ':
+                
+            
+    def scrap_url(self):
         """
         while True:
             html = self.driver.page_source
@@ -153,6 +152,7 @@ class URLScrap():
         for a in a_tag_list:
             url_list.append(pre_url+a.get('href'))
         return url_list
+
 if __name__ == "__main__":
     scraping = URLScrap('./test.xlsx')
     scraping.book_init()
