@@ -17,21 +17,21 @@ class URLScrap():
     sheet = book.worksheets[0]
     def __init__(self, path):
         #init WebDriver
-        options = webdriver.ChromeOptions()
-        options.add_argument("start-maximized")
-        options.add_argument("enable-automation")
+        self.options = webdriver.ChromeOptions()
+        self.options.add_argument("start-maximized")
+        self.options.add_argument("enable-automation")
         #options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-infobars")
-        options.add_argument('--disable-extensions')
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-browser-side-navigation")
-        options.add_argument("--disable-gpu")
-        options.add_argument('--ignore-certificate-errors')
-        options.add_argument('--ignore-ssl-errors')
+        self.options.add_argument("--no-sandbox")
+        self.options.add_argument("--disable-infobars")
+        self.options.add_argument('--disable-extensions')
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--disable-browser-side-navigation")
+        self.options.add_argument("--disable-gpu")
+        self.options.add_argument('--ignore-certificate-errors')
+        self.options.add_argument('--ignore-ssl-errors')
         prefs = {"profile.default_content_setting_values.notifications": 2}
-        options.add_experimental_option("prefs", prefs)
-        self.driver = webdriver.Chrome(executable_path='chromedriver.exe', options=options)
+        self.options.add_experimental_option("prefs", prefs)
+        self.driver = webdriver.Chrome(executable_path='chromedriver.exe', options=self.options)
         self.path = path
     
     def book_init(self):
@@ -126,22 +126,41 @@ class URLScrap():
             print(city)
             time.sleep(1)                            
             select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text 
-            if select in '駅・バス停から探す ':#区町村選択がない場合の処理系
+            
+            #区町村選択がない場合の処理系
+            if select in '駅・バス停から探す ':
                 station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
                 print(station_list)
                 #another process here
-            else:#区町村選択がある場合の処理系
+                for station in station_list:
+                    self.driver.get(station)
+                    time.sleep(1)
+                    junle_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                    print(junle_list)
+                    for junle in junle_list:
+                        self.driver.get(junle)
+                        time.sleep(1)
+                        kategoli_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                        print(kategoli_list)
+                        for kategoli in kategoli_list:
+                            self.driver.get(kategoli)
+                            #scrap URL process here
+
+            #区町村選択がある場合の処理系   
+            else:
                 city_list2 = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                 for city2 in city_list2:
                     self.driver.get(city2)
                     time.sleep(1)                      
                     station_list = self.extraction_url('#tab_point_0 > div > div > ul > li > a', 'https://www.ekiten.jp')
                     if station_list == []:
-                        print('バス！')
                         station_list = self.extraction_url('#tab_point_1 > div > div > ul > li > a', 'https://www.ekiten.jp')
                     print(station_list)
                     #another process here
 
+    def restart(self):
+        self.driver.quit()
+        self.driver = webdriver.Chrome('chromedriver.exe', options=self.options)
 
     def scrap_url(self):
         """
