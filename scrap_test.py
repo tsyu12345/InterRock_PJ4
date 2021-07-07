@@ -1,4 +1,5 @@
 from base64 import standard_b64decode
+from PySimpleGUI.PySimpleGUI import No
 import openpyxl as px
 import PySimpleGUI as gui
 import re
@@ -48,8 +49,7 @@ class Scrap():
             "料金プラン",
             "都道府県コード",
             "都道府県",
-            "市区町村",
-            "番地・建物",
+            "市区町村・番地",
             "住所フル",
             "店舗URL",
             "shopID",
@@ -214,7 +214,7 @@ class Scrap():
                 break
 
     def info_scrap(self, url):
-        write_data = []
+        write_data = [] #書き込み用データを保存するリスト：各要素はブックの列に対応
         self.driver.get(url)
         html = self.driver.page_source
         soup = bs(html, 'lxml')
@@ -222,13 +222,14 @@ class Scrap():
             soup.select_one(
                 'div.layout_media p-topic_path_container > div.topic_path > a:nth-child(3)'
             ).get_text()
-        )
-
-        write_data.append(
-            soup.select_one(
-                'body > div:nth-child(12) > div > div.p-tel_modal_phone_number > div > div > p'
-            ).get_text()
-        )
+        )#ジャンル
+        try:
+            tel = soup.select_one(
+                    'body > div:nth-child(12) > div > div.p-tel_modal_phone_number > div > div > p'
+                ).get_text()
+        except AttributeError:
+            tel = None
+        write_data.append(tel)#TEL
         # table info scraping
         table_col = soup.select(
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.p-shop_content_container.p-shop_content_container_relative > table > tbody > tr > th'
@@ -251,13 +252,102 @@ class Scrap():
         except AttributeError:
             store_kana = None
         write_data.append(store_kana)
-        write_data.append(table_list['住所'])
+        all_addresses = table_list['住所']
+        pref_obj = re.search('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
+        pref = pref_obj.group()
+        write_data.append(self.call_jis_code(pref)) #JISコード
+        write_data.append(pref) #都道府県名
+        muni = re.split('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)#都道府県と市区町村を分離
+        write_data.append(muni[1]) #市区町村番地
+        write_data.append(all_addresses)#フル住所
+        write_data.append(url) #店舗URL
+        shop_id_string = re.search(r"shop_\d{0,}", url).group()
+        shop_id = re.search(r"\d{1,}", shop_id_string).group()
+        write_data.append(shop_id) #店舗ID
+        url_list = re.findall(r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", table_list['URL'])
+        for i in range(3):
+            write_data.append(url_list[i]) #URLその１～３        
+        pankuzu_header = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div').get_text()
+        pankuzu = pankuzu_header.replace('\n', " > ")
+        write_data.append(pankuzu.strip(" > ")) #パンくずヘッダー
+        try:
+            catch_copy = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > p').get_text()
+        except AttributeError:
+            catch_copy = None
+        write_data.append(catch_copy)
+        official = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > div > span')
+        if official != None:
+            write_data.append("●") #店舗公式
+        else:
+            write_data.append(None)
+        write_data.append(None) #未確認店舗
+        store_score_tag = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_rating > div > div.rating_stars_num.tooltip > span')
+        if store_score_tag == None:
+            write_data.append(None) #評価点数
+        else:
+            score = store_score_tag.get_text()
+            write_data.append(score)
+        
+
 
         #wirte book
         for col, data in enumerate(write_data):
-            self.sheet.cell(row=self.sheet.max_row + 1, column=col+1, value=write_data[col])
+            self.sheet.cell(row=self.sheet.max_row + 1, column=col+1, value=data)
         self.book.save(self.path)
         
+    def call_jis_code(self, key):
+        pref_jiscode = {
+            "北海道": 1,
+            "青森県": 2,
+            "岩手県": 3,
+            "宮城県": 4,
+            "秋田県": 5,
+            "山形県": 6,
+            "福島県": 7,
+            "茨城県": 8,
+            "栃木県": 9,
+            "群馬県": 10,
+            "埼玉県": 11,
+            "千葉県": 12,
+            "東京都": 13,
+            "神奈川県": 14,
+            "新潟県": 15,
+            "富山県": 16,
+            "石川県": 17,
+            "福井県": 18,
+            "山梨県": 19,
+            "長野県": 20,
+            "岐阜県": 21,
+            "静岡県": 22,
+            "愛知県": 23,
+            "三重県": 24,
+            "滋賀県": 25,
+            "京都府": 26,
+            "大阪府": 27,
+            "兵庫県": 28,
+            "奈良県": 29,
+            "和歌山県": 30,
+            "鳥取県": 31,
+            "島根県": 32,
+            "岡山県": 33,
+            "広島県": 34,
+            "山口県": 35,
+            "徳島県": 36,
+            "香川県": 37,
+            "愛媛県": 38,
+            "高知県": 39,
+            "福岡県": 40,
+            "佐賀県": 41,
+            "長崎県": 42,
+            "熊本県": 43,
+            "大分県": 44,
+            "宮崎県": 45,
+            "鹿児島県": 46,
+            "沖縄県": 47
+        }
+        code = pref_jiscode[key]
+        return code
+
     def write_url(self, a_tag_list):
         url_list = []
         for a in a_tag_list:

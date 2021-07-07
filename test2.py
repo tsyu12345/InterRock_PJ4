@@ -1,3 +1,6 @@
-s = "ABCD\nABDC"
-print(s)
-print(s.replace('\n', ''))
+import re 
+
+s = 'https://chisenowa.com/（ホームページ）'
+
+url = re.search(r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", s).group()
+print(url)
