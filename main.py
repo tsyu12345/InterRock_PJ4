@@ -1,11 +1,8 @@
-from os import terminal_size
-import threading
-from tkinter import font
 import PySimpleGUI as gui
-from PySimpleGUI.PySimpleGUI import popup_error
-import time
+from PySimpleGUI.PySimpleGUI import popup, popup_error
 import sys
-
+from scrap_test import Scrap
+import threading
 class AreaSelect:
     def lay_out(self):
         L = [
@@ -37,7 +34,6 @@ class AreaSelect:
             for v in value.keys():
                 if value[v] == True:
                     pref.append(v)
-            print(pref)
             if event in ("Quit", None, 'OK'):
                 break
         window.close()
@@ -86,7 +82,20 @@ def obj_frame(lay_out_data):
         ]
     return L
 
+class Job(Scrap):
+    def __init__(self, path):
+        super().__init__(path)
+        super().book_init()
+    
+    def scrap(self, area_list):
+        for i, area in enumerate(area_list):
+           super().search(area)#指定エリアの店舗URLのサーチ
+           for j in range(2, super().sheet.max_row+1):
+               super().info_scrap(super().sheet.cell(row=j, column=12).value, j)
+        super().driver.quit()
+        gui.popup('お疲れ様でした。抽出完了です。ファイルを確認してください。\n保存先：'+super().path)
 
+               
 if __name__ == "__main__":
     gui.theme('BluePurple')
     width = 700
@@ -119,7 +128,12 @@ if __name__ == "__main__":
                 win['pref_name'].update(add)
         
         if event == '抽出実行':
-            pass
+            pref_list = value['pref_name'].split(",")
+            print(pref_list)
+            job = Job(path=value['path'])
+            th1 = threading.Thread(target=job.scrap, args=[pref_list], daemon=True)
+            th1.start()
+            gui.popup_cancel("ただいま処理中です。しばらくお待ちください。", keep_on_top=True)
         # when window close
         if event in ("Quit", None):
             comp_flg = True

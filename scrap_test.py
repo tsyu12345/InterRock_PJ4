@@ -155,7 +155,7 @@ class Scrap():
                             self.driver.get(kategoli)
                             # scrap URL process here
                             self.scrap_url()
-                        time.sleep(3)
+                        self.restart()
                     self.restart()
 
             # 区町村選択がある場合の処理系
@@ -187,8 +187,7 @@ class Scrap():
                                 self.driver.get(kategoli)
                                 self.scrap_url()
                                 # scrap URL process here
-                            time.sleep(3)
-                        time.sleep(3)
+                            self.restart()
                     self.restart()
             self.restart()
 
@@ -371,7 +370,7 @@ class Scrap():
         except AttributeError:
             introduction = None
         self.sheet.cell(row=index, column=52, value=introduction)
-                
+        
         self.book.save(self.path)
         
     def call_jis_code(self, key):
