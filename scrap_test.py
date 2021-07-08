@@ -1,5 +1,3 @@
-from base64 import standard_b64decode
-from tkinter.constants import NONE
 from PySimpleGUI.PySimpleGUI import No
 import openpyxl as px
 import PySimpleGUI as gui
@@ -455,6 +453,7 @@ class Scrap():
 
 
 if __name__ == "__main__":
+    """
     test_url = [
         "https://www.ekiten.jp/shop_88106804/",
         "https://www.ekiten.jp/shop_79608272/",
@@ -486,13 +485,14 @@ if __name__ == "__main__":
         "https://www.ekiten.jp/shop_61620533/",
         "https://www.ekiten.jp/shop_95295090/",
     ]
-
+    """
     scraping = Scrap('./run_test.xlsx')
     scraping.book_init()
-    #scraping.search('徳島県')
+    scraping.search('徳島県')
+    for r in range(2, scraping.sheet.max_row+1):
+        url = scraping.sheet.cell(row=r, column=13).value
+        print(str(r) + ".scraping at:" + url)
+        scraping.info_scrap(url, r)
     #Test Run
-    for i, url in enumerate(test_url):
-        print("scraping at : " + url)
-        scraping.info_scrap(url, 2+i)
     print("compleate!!")
     scraping.driver.quit()
