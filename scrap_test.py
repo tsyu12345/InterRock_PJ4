@@ -1,4 +1,5 @@
 from base64 import standard_b64decode
+from tkinter.constants import NONE
 from PySimpleGUI.PySimpleGUI import No
 import openpyxl as px
 import PySimpleGUI as gui
@@ -213,23 +214,26 @@ class Scrap():
             except NoSuchElementException:
                 break
 
-    def info_scrap(self, url):
-        write_data = [] #書き込み用データを保存するリスト：各要素はブックの列に対応
+    def info_scrap(self, url, index):
+        self.sheet.cell(row=index, column=1, value=None)#A列
+        self.sheet.cell(row=index, column=2, value=None)#B列
         self.driver.get(url)
         html = self.driver.page_source
         soup = bs(html, 'lxml')
-        write_data.append(
-            soup.select_one(
-                'div.layout_media p-topic_path_container > div.topic_path > a:nth-child(3)'
-            ).get_text()
-        )#ジャンル
+        try:
+            junle = soup.select_one(
+                    'body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div > a:nth-child(3)'
+                ).get_text()
+        except AttributeError:
+            junle = None
+        self.sheet.cell(row=index, column=3, value=junle)#ジャンル
         try:
             tel = soup.select_one(
                     'body > div:nth-child(12) > div > div.p-tel_modal_phone_number > div > div > p'
                 ).get_text()
         except AttributeError:
             tel = None
-        write_data.append(tel)#TEL
+        self.sheet.cell(row=index, column=4, value=tel)#TEL
         # table info scraping
         table_col = soup.select(
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.p-shop_content_container.p-shop_content_container_relative > table > tbody > tr > th'
@@ -244,55 +248,132 @@ class Scrap():
             info = info.replace(" ", "")
             info = info.replace("　", "")
             info = info.replace("\n", "")
-            info = info.replace("地図で場所を見るGoogleマップで見る")
+            info = info.replace("地図で場所を見るGoogleマップで見る", "")
             table_list[menu] = info
-        write_data.append(table_list['店舗名'])
+        self.sheet.cell(row=index, column=5, value=table_list['店舗名'])
         try:
             store_kana = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div > div.p-shop_header_name_container > div > span').get_text()
         except AttributeError:
             store_kana = None
-        write_data.append(store_kana)
+        self.sheet.cell(row=index, column=6, value=store_kana)
         all_addresses = table_list['住所']
         pref_obj = re.search('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
         pref = pref_obj.group()
-        write_data.append(self.call_jis_code(pref)) #JISコード
-        write_data.append(pref) #都道府県名
+        self.sheet.cell(row=index, column=8, value=self.call_jis_code(pref)) #JISコード
+        self.sheet.cell(row=index, column=9, value=pref)#都道府県名
         muni = re.split('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)#都道府県と市区町村を分離
-        write_data.append(muni[1]) #市区町村番地
-        write_data.append(all_addresses)#フル住所
-        write_data.append(url) #店舗URL
+        self.sheet.cell(row=index, column=10, value=muni[1]) #市区町村番地
+        self.sheet.cell(row=index, column=11, value=all_addresses)#フル住所
+        self.sheet.cell(row=index, column=12, value=url)#店舗URL
         shop_id_string = re.search(r"shop_\d{0,}", url).group()
         shop_id = re.search(r"\d{1,}", shop_id_string).group()
-        write_data.append(shop_id) #店舗ID
-        url_list = re.findall(r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", table_list['URL'])
+        self.sheet.cell(row=index, column=13, value=shop_id)#shopID
+        try:
+            url_list = re.findall(r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", table_list['URL'])
+        except KeyError: #URLがない時
+            url_list = [None, None, None]
         for i in range(3):
-            write_data.append(url_list[i]) #URLその１～３        
+            try:
+                self.sheet.cell(row=index, column=14+i, value=url_list[i]) #URLその１～３
+            except IndexError:
+                self.sheet.cell(row=index, column=14+i, value=None)
         pankuzu_header = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div').get_text()
         pankuzu = pankuzu_header.replace('\n', " > ")
-        write_data.append(pankuzu.strip(" > ")) #パンくずヘッダー
+        self.sheet.cell(row=index, column=17, value=pankuzu.strip(" > ")) #パンくずヘッダー
         try:
             catch_copy = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > p').get_text()
         except AttributeError:
             catch_copy = None
-        write_data.append(catch_copy)
+        self.sheet.cell(row=index, column=18, value=catch_copy)
         official = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > div > span')
         if official != None:
-            write_data.append("●") #店舗公式
+            official_judge = "●" #店舗公式
         else:
-            write_data.append(None)
-        write_data.append(None) #未確認店舗
+            official_judge = None
+        self.sheet.cell(row=index, column=19, value=official_judge)
+        self.sheet.cell(row=index, column=20, value=None) #未確認店舗
         store_score_tag = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_rating > div > div.rating_stars_num.tooltip > span')
         if store_score_tag == None:
-            write_data.append(None) #評価点数
+            score = None #評価点数
         else:
-            score = store_score_tag.get_text()
-            write_data.append(score)
+            score = float(store_score_tag.get_text())
+        self.sheet.cell(row=index, column=21, value=score)
+        review_count = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_info > div.p-shop_header_info_review > div > span.icon_wrapper_text > a')
+        if review_count in (None, '0'):
+            review_count = 0
+        else:
+            review_count = int(review_count.get_text())
+        self.sheet.cell(row=index, column=22, value=review_count)#口コミ数
+        photo_tag = soup.select('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(3) > div.grid.space15.vertical_space15.js_photo_gallery > div > a > img')
+        photo_cnt = len(photo_tag)#写真枚数
+        self.sheet.cell(row=index, column=23, value=photo_cnt)
+        access = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(1) > div').get_text()
+        self.sheet.cell(row=index, column=24, value=access)#アクセス
+        junle1 = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > a').get_text()
+        self.sheet.cell(row=index, column=25, value=junle1)#ジャンル１
+        junle2_4 = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > span')
+        for c, junle in enumerate(junle2_4):
+            self.sheet.cell(row=index, column=26+c, value=junle.get_text())
+        feat_list = [
+            "早朝OK",
+            "日祝OK",
+            "夜間OK",
+            "駐車場有",
+            "ネット予約",
+            "クーポン有",
+            "カード可",
+            "出張・宅配あり",
+        ]
+        features = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_tag_list.tag_group > li')
+        for feature in features:
+            if feature == None: #特徴タグがない時処理を行わない
+                break
+            for i, list in enumerate(feat_list):
+                if feature.get_text() == list:
+                    self.sheet.cell(row=self.sheet.max_row+1, column=30+i, value="●")#店舗の特徴
+                    break #見つかったら小ループ抜けて次の特徴へ
+        ido_kedo = soup.select_one('#mapDiv > div:nth-child(1) > div > div:nth-child(5) > div > div > div > div > div.place-desc-large > div.place-name')
+        if ido_kedo == None:
+            ido_kedo = (None, None)
+        else:
+            ido_kedo = ido_kedo.get_text()
+            ido_kedo = ido_kedo.split(" ")
+        self.sheet.cell(row=index, column=37, value=ido_kedo[0]) #緯度
+        self.sheet.cell(row=index, column=38, value=ido_kedo[1]) #経度
+        moyorieki = None
+        self.sheet.cell(row=index, column=39, value=moyorieki)#アクセス/最寄り駅
+        try:
+            holiday_d_time = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(3) > div').get_text()
+            holiday_d_time = holiday_d_time.replace("\n", "/")
+            holiday_d_time = holiday_d_time.replace(" ", "")
+        except AttributeError:
+            holiday_d_time = None
+        self.sheet.cell(row=index, column=40, value=holiday_d_time)#営業時間/定休日
         
-
-
-        #wirte book
-        for col, data in enumerate(write_data):
-            self.sheet.cell(row=self.sheet.max_row + 1, column=col+1, value=data)
+        menu_list = [
+            "駐車場",
+            "クレジットカード",
+            "座席",
+            "用途",
+            "メニュー",
+            "特徴",
+            "ポイント",
+            "ここがすごい！",
+            "メディア関連",
+            "価格設定",
+            "マルチアクセス",
+        ]
+        for c, menu in enumerate(menu_list):
+            try:
+                self.sheet.cell(row=index, column=41+c, value=table_list[menu])
+            except KeyError:
+                self.sheet.cell(row=index, column=41+c, value=None)
+        try:
+            introduction = soup.select_one('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(2) > div > div > div.p-shop_introduction_content.js_toggle_content > p').get_text()
+        except AttributeError:
+            introduction = None
+        self.sheet.cell(row=index, column=52, value=introduction)
+                
         self.book.save(self.path)
         
     def call_jis_code(self, key):
@@ -374,8 +455,44 @@ class Scrap():
 
 
 if __name__ == "__main__":
-    scraping = Scrap('./test.xlsx')
+    test_url = [
+        "https://www.ekiten.jp/shop_88106804/",
+        "https://www.ekiten.jp/shop_79608272/",
+        "https://www.ekiten.jp/shop_70897950/",
+        "https://www.ekiten.jp/shop_70296422/",
+        "https://www.ekiten.jp/shop_58067946/",
+        "https://www.ekiten.jp/shop_51517853/",
+        "https://www.ekiten.jp/shop_63474300/",
+        "https://www.ekiten.jp/shop_16443976/",
+        "https://www.ekiten.jp/shop_27214855/",
+        "https://www.ekiten.jp/shop_49566534/",
+        "https://www.ekiten.jp/shop_41288052/",
+        "https://www.ekiten.jp/shop_13378029/",
+        "https://www.ekiten.jp/shop_65698495/",
+        "https://www.ekiten.jp/shop_89888651/",
+        #"https://www.ekiten.jp/shop_50246627/",
+        "https://www.ekiten.jp/shop_27904560/",
+        "https://www.ekiten.jp/shop_43582014/",
+        "https://www.ekiten.jp/shop_54599516/",
+        "https://www.ekiten.jp/shop_20556262/",
+        "https://www.ekiten.jp/shop_65198684/",
+        "https://www.ekiten.jp/shop_36161923/",
+        "https://www.ekiten.jp/shop_94297307/",
+        "https://www.ekiten.jp/shop_84159649/",
+        "https://www.ekiten.jp/shop_65817519/",
+        "https://www.ekiten.jp/shop_69489840/",
+        "https://www.ekiten.jp/shop_26687442/",
+        "https://www.ekiten.jp/shop_22073739/",
+        "https://www.ekiten.jp/shop_61620533/",
+        "https://www.ekiten.jp/shop_95295090/",
+    ]
+
+    scraping = Scrap('./run_test.xlsx')
     scraping.book_init()
-    scraping.search('徳島県')
-    # scraping.scrap()
+    #scraping.search('徳島県')
+    #Test Run
+    for i, url in enumerate(test_url):
+        print("scraping at : " + url)
+        scraping.info_scrap(url, 2+i)
+    print("compleate!!")
     scraping.driver.quit()

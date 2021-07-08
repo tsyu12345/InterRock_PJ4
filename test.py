@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup as bs
 import re
 
 driver = webdriver.Chrome('chromedriver.exe')
-driver.get('https://www.ekiten.jp/shop_69489840/')
+driver.get('https://www.ekiten.jp/shop_70897950/')
 html = driver.page_source
 
 soup = bs(html, 'lxml')
@@ -49,11 +49,26 @@ print(tel)
 print(store_name)
 print(store_kana)
 print(address)
-print(table_list['URL'])
-url = re.findall(r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", table_list['URL'])
-print(url)
-
+try:
+    print(table_list['URL'])
+    url = re.findall(r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", table_list['URL'])
+    print(url)
+except KeyError:
+    url = None
 pankuzu = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div').get_text()
 pan = pankuzu.replace('\n'," > ")
 print(pan.strip(' > '))
+
+junle1 = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > a').get_text()
+print(junle1)
+junles = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > span')
+for junle in junles:
+    print(junle.get_text())
+
+day_time = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(3) > div').get_text()
+day_time = day_time.replace("\n", "/")
+day_time = day_time.replace(" ", "")
+print(day_time)
+    
+    
 driver.quit()
