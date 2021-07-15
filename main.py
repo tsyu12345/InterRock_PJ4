@@ -3,6 +3,8 @@ from PySimpleGUI.PySimpleGUI import popup, popup_error
 import sys
 from scrap_test import Scrap
 import threading
+import time
+
 class AreaSelect:
     def lay_out(self):
         L = [
@@ -44,6 +46,8 @@ class BigJunleSelect:
     def __init__(self):
         self.junle = [
             "全ジャンル抽出",
+        ]
+        """
             "リラク・ボディケア",
             "ヘアサロン・ネイル",
             "学習塾・予備校",
@@ -57,7 +61,7 @@ class BigJunleSelect:
             "出張デリバリー・生活サービス",
             "住宅・不動産",
             "冠婚葬祭"
-        ]
+            """
 
     def lay_out(self):
         L = [
@@ -82,20 +86,87 @@ def obj_frame(lay_out_data):
         ]
     return L
 
-class Job(Scrap):
+class Job():
     def __init__(self, path):
-        super().__init__(path)
-        super().book_init()
+        self.path = path
+        self.scraping = Scrap(path)
+        self.scraping.book_init()
+        self.url_scrap_flg = False
+        self.info_scrap_flg = False
+        self.end_flg = False
+        self.save_flg = False
+        self.sum_cnt = 1#抽出中URLの合計
+        self.scrap_cnt = 0#スクレイピング件数
     
-    def scrap(self, area_list):
-        for i, area in enumerate(area_list):
-           super().search(area)#指定エリアの店舗URLのサーチ
-           for j in range(2, super().sheet.max_row+1):
-               super().info_scrap(super().sheet.cell(row=j, column=12).value, j)
-        super().driver.quit()
-        gui.popup('お疲れ様でした。抽出完了です。ファイルを確認してください。\n保存先：'+super().path)
+    """
+    def custom_scrap(self, area_list, junle):
+        for area in area_list:
+            self.driver.get('https://www.ekiten.jp/')
+            sr_box = self.driver.find_element_by_css_selector(
+                '#select_form_st_com')
+            sr_box.send_keys(area)
+            sr_btn = self.driver.find_element_by_css_selector(
+                '#js_random_top > div > div > div > form > div > input')
+            sr_btn.click()
+            city_list = self.extraction_url(
+                'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
 
-               
+            for city in city_list:
+                self.driver.get(city)
+                print(city)
+                time.sleep(1)
+                select = self.driver.find_element_by_css_selector(
+                    'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
+
+                # 区町村選択がない場合の処理系
+                if select in '駅・バス停から探す ':
+                    #junle select and scrap hrere
+                # 区町村選択がある場合の処理系
+                else:
+                    city_list2 = self.extraction_url(
+                        'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                    for city2 in city_list2:
+                        self.driver.get(city2)
+                        time.sleep(1)
+                        junle_list = self.extraction_url(
+                            'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                        print(junle_list)
+                        for junle in junle_list:
+                            self.driver.get(junle)
+                            time.sleep(1)
+                            kategoli_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                            print(kategoli_list)
+                            for kategoli in kategoli_list:
+                                self.driver.get(kategoli)
+                                self.scrap_url()
+                                # scrap URL process here
+                            self.restart()
+                    self.restart()
+                self.restart()
+    """
+    #def junleselect(self):
+        
+    def scrap(self, area_list):
+        self.url_scrap_flg = True
+        for area in area_list:
+            self.scraping.search(area)#指定エリアの店舗URLのサーチ
+        self.url_scrap_flg = False
+        self.sum_cnt = self.scraping.sheet.max_row
+        self.info_scrap_flg = True
+        for r in range(2, self.scraping.sheet.max_row+1):
+            self.scraping.info_scrap(self.scraping.sheet.cell(row=r, column=12).value, r)
+            self.scrap_cnt += 1
+        self.info_scrap_flg = False
+        self.save_flg = True
+        self.scraping.book.save(self.path)
+        self.scraping.driver.quit()
+        self.save_flg = False
+        self.end_flg = True
+
+    def cancel(self):
+        self.scraping.book.save(self.path)
+        self.scraping.driver.quit()
+
 if __name__ == "__main__":
     gui.theme('BluePurple')
     width = 700
@@ -112,7 +183,8 @@ if __name__ == "__main__":
     layout = obj_frame([frame1, path_obj.lay_out()])
     win = gui.Window('エキテン掲載情報 抽出ツール', layout=layout)
     comp_flg = False
-    
+    running = False
+    detati = False
     while comp_flg == False:
         event, value = win.read()
         print(event)
@@ -133,10 +205,45 @@ if __name__ == "__main__":
             job = Job(path=value['path'])
             th1 = threading.Thread(target=job.scrap, args=[pref_list], daemon=True)
             th1.start()
-            gui.popup_cancel("ただいま処理中です。しばらくお待ちください。", keep_on_top=True)
+            running = True
+            while running:
+                if job.url_scrap_flg:
+                    run = gui.OneLineProgressMeter("処理中です...", job.scraping.count, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
+                    if run == False:
+                        gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
+                        job.cancel()
+                        detati = True
+                        running = False
+                        break
+                           
+                if job.info_scrap_flg:
+                    run = gui.OneLineProgressMeter("処理中です...", job.scrap_cnt, job.sum_cnt, 'prog', "店舗情報を抽出中です。\nブラウザが複数回再起動します。")
+                    if run == False:
+                        gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
+                        job.cancel()
+                        detati = True
+                        running = False
+                        break
+                
+                if job.save_flg:
+                    gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="最終処理中...")
+                
+                if job.end_flg:
+                    running = False
+                    comp_flg = True
+                    break
         # when window close
-        if event in ("Quit", None):
+        if detati:
+            gui.popup('処理を中断しました。ファイルを確認してください。\n保存先：'+ job.path, keep_on_top=True)
             comp_flg = True
+            break
+        if comp_flg:
+            gui.popup('お疲れ様でした。抽出完了です。ファイルを確認してください。\n保存先：'+ job.path, keep_on_top=True)
+            break
+
+        if event in ("Quit", None):
+            break
+    
     win.close()
     sys.exit()
 
