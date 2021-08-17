@@ -22,7 +22,7 @@ class Scrap():
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        # options.add_argument("--headless")
+        self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -33,6 +33,8 @@ class Scrap():
         self.options.add_argument('--ignore-ssl-errors')
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
+        browser_path = resource_path('chrome-win/chrome.exe')
+        self.options.binary_location = browser_path
         self.driver = webdriver.Chrome(
             executable_path='chromedriver.exe', options=self.options)
         self.path = path
@@ -450,6 +452,12 @@ class Scrap():
             url_list.append(pre_url+a.get('href'))
         return url_list
 
+def resource_path(relative_path):#バイナリフィルのパスを提供
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(__file__)
+    return os.path.join(base_path, relative_path)
 
 if __name__ == "__main__":
     """
