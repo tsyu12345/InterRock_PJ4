@@ -2,9 +2,7 @@ import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import popup, popup_error
 import sys
 from scrap_test import Scrap
-import threading
-import time
-
+from multiprocessing import Pool
 class AreaSelect:
     def lay_out(self):
         L = [
@@ -203,24 +201,28 @@ if __name__ == "__main__":
             pref_list = value['pref_name'].split(",")
             print(pref_list)
             job = Job(path=value['path'])
-            th1 = threading.Thread(target=job.scrap, args=[pref_list], daemon=True)
-            th1.start()
+            pool = Pool(2)
+            pool.apply_async(job.scrap, args=[pref_list])
+            #th1 = threading.Thread(target=job.scrap, args=[pref_list], daemon=True)
+            #th1.start()
             running = True
             while running:
-                if job.url_scrap_flg:
+                while job.url_scrap_flg:
                     run = gui.OneLineProgressMeter("処理中です...", job.scraping.count, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
-                    if run == False:
+                    if run == False and job.url_scrap_flg:
                         gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
                         job.cancel()
+                        pool.terminate()
                         detati = True
                         running = False
                         break
                            
-                if job.info_scrap_flg:
+                while job.info_scrap_flg:
                     run = gui.OneLineProgressMeter("処理中です...", job.scrap_cnt, job.sum_cnt, 'prog', "店舗情報を抽出中です。\nブラウザが複数回再起動します。")
-                    if run == False:
+                    if run == False and job.info_scrap_flg:
                         gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
                         job.cancel()
+                        pool.terminate()
                         detati = True
                         running = False
                         break
