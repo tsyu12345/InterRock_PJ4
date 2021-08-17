@@ -3,3 +3,5 @@ __pycache__
 test.py
 test2.py
 chromedriver.exe
+chrome-win
+*.csv
