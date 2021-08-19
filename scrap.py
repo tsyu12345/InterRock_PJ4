@@ -1,18 +1,17 @@
 from PySimpleGUI.PySimpleGUI import No
 import openpyxl as px
-import PySimpleGUI as gui
 import re
 import sys
 import os
-import threading as th
 import time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, WebDriverException
 #from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup as bs
-
-
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
 class Scrap():
     book = px.Workbook()
     sheet = book.worksheets[0]
@@ -120,13 +119,16 @@ class Scrap():
     #全ジャンル抽出の場合
     def search(self, area):  # 検索と条件指定
         #driver_action = ActionChains(self.driver)
+        wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
         self.driver.get('https://www.ekiten.jp/')
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
         sr_box = self.driver.find_element_by_css_selector(
             '#select_form_st_com')
         sr_box.send_keys(area)
         sr_btn = self.driver.find_element_by_css_selector(
             '#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
+        wait.until(EC.visibility_of_all_elements_located)
         city_list = self.extraction_url(
             'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
         result= self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.search_result_heading.u-mb10 > div.search_result_heading_sub > dl > div > dd').text
@@ -136,25 +138,29 @@ class Scrap():
         self.count = 0
         for city in city_list:
             self.driver.get(city)
+            wait.until(EC.visibility_of_all_elements_located)
             print(city)
-            time.sleep(1)
+            #time.sleep(1)
             select = self.driver.find_element_by_css_selector(
                 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
 
             # 区町村選択がない場合の処理系
             if select in '駅・バス停から探す ':
-                time.sleep(1)
+                #time.sleep(1)
+                wait.until(EC.visibility_of_all_elements_located)
                 junle_list = self.extraction_url(
                     'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                 print(junle_list)
                 for junle in junle_list:
                     self.driver.get(junle)
-                    time.sleep(1)
+                    wait.until(EC.visibility_of_all_elements_located)
+                    #time.sleep(1)
                     kategoli_list = self.extraction_url(
                         'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                     print(kategoli_list)
                     for kategoli in kategoli_list:
                         self.driver.get(kategoli)
+                        wait.until(EC.visibility_of_all_elements_located)
                         # scrap URL process here
                         self.scrap_url()
                         self.count += 1
@@ -163,21 +169,25 @@ class Scrap():
 
             # 区町村選択がある場合の処理系
             else:
+                wait.until(EC.visibility_of_all_elements_located)
                 city_list2 = self.extraction_url(
                     'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                 for city2 in city_list2:
                     self.driver.get(city2)
-                    time.sleep(1)
+                    wait.until(EC.visibility_of_all_elements_located)
+                    #time.sleep(1)
                     junle_list = self.extraction_url(
                         'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                     print(junle_list)
                     for junle in junle_list:
                         self.driver.get(junle)
-                        time.sleep(1)
+                        wait.until(EC.visibility_of_all_elements_located)
+                        #time.sleep(1)
                         kategoli_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                         print(kategoli_list)
                         for kategoli in kategoli_list:
                             self.driver.get(kategoli)
+                            wait.until(EC.visibility_of_all_elements_located)
                             self.scrap_url()
                             self.count += 1
                             # scrap URL process here
