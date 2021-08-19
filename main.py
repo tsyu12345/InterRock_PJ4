@@ -209,7 +209,7 @@ if __name__ == "__main__":
             running = True
             while running:
                 if job.url_scrap_flg:
-                    run = gui.OneLineProgressMeter("処理中です...", job.scraping.count, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
+                    run = gui.OneLineProgressMeter("処理中です...", job.scraping.sheet.max_row, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
                     if run == False and job.url_scrap_flg:
                         gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
                         job.cancel()

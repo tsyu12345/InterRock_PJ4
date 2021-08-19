@@ -435,7 +435,7 @@ class Scrap():
         for url in url_list:
             row = self.sheet.max_row + 1
             print(row)
-            self.sheet.cell(row=row, column=13, value=url)
+            self.sheet.cell(row=row, column=12, value=url)
         self.book.save(self.path)
 
     def extraction_url(self, selector, pre_url):
