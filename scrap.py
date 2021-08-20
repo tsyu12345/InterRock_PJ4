@@ -5,7 +5,7 @@ import sys
 import os
 import time
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import InvalidSessionIdException, NoSuchElementException, WebDriverException
 #from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup as bs
@@ -21,7 +21,7 @@ class Scrap():
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        self.options.add_argument("--headless")
+        #self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -30,8 +30,8 @@ class Scrap():
         self.options.add_argument("--disable-gpu")
         self.options.add_argument('--ignore-certificate-errors')
         self.options.add_argument('--ignore-ssl-errors')
-        prefs = {"profile.default_content_setting_values.notifications": 2}
-        self.options.add_experimental_option("prefs", prefs)
+        #prefs = {"profile.default_content_setting_values.notifications": 2}
+        #self.options.add_experimental_option("prefs", prefs)
         browser_path = resource_path('chrome-win/chrome.exe')
         self.options.binary_location = browser_path
         self.driver = webdriver.Chrome(
@@ -119,14 +119,13 @@ class Scrap():
     #全ジャンル抽出の場合
     def search(self, area):  # 検索と条件指定
         #driver_action = ActionChains(self.driver)
-        wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
         self.driver.get('https://www.ekiten.jp/')
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
-        sr_box = self.driver.find_element_by_css_selector(
-            '#select_form_st_com')
+        #wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
+        wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
+        wait.until(EC.visibility_of_all_elements_located)
+        sr_box = self.driver.find_element_by_id('select_form_st_com')
         sr_box.send_keys(area)
-        sr_btn = self.driver.find_element_by_css_selector(
-            '#js_random_top > div > div > div > form > div > input')
+        sr_btn = self.driver.find_element_by_css_selector('#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
         wait.until(EC.visibility_of_all_elements_located)
         city_list = self.extraction_url(
