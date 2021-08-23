@@ -166,6 +166,8 @@ class Job():
     def cancel(self):
         self.scraping.book.save(self.path)
         self.scraping.driver.quit()
+        self.scraping.deduplication()
+        self.scraping.book.save(self.path)
 
 if __name__ == "__main__":
     gui.theme('BluePurple')
@@ -210,7 +212,11 @@ if __name__ == "__main__":
             running = True
             while running:
                 if job.url_scrap_flg:
-                    run = gui.OneLineProgressMeter("処理中です...", job.scraping.sheet.max_row, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
+                    count = job.scraping.sheet.max_row
+                    if count >= job.scraping.result_cnt:
+                        count = job.scraping.result_cnt-1
+                    #ProgWindowが消えると、detati判定になってしまうため、上限値を超えないように一時的な対策。
+                    run = gui.OneLineProgressMeter("処理中です...", count, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
                     if run == False and job.url_scrap_flg:
                         gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
                         job.cancel()

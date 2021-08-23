@@ -21,7 +21,7 @@ class Scrap():
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        #self.options.add_argument("--headless")
+        self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -37,8 +37,9 @@ class Scrap():
         self.driver = webdriver.Chrome(
             executable_path='chromedriver.exe', options=self.options)
         self.path = path
-        self.result_cnt = 1
+        self.result_cnt = 2
         self.count = 0
+    
     def book_init(self):
         col_list = [
             "エキテン",
