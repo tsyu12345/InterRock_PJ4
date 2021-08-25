@@ -136,6 +136,7 @@ class Scrap():
         result = result.replace("件", "")
         self.result_cnt = int(result)
         self.count = 0
+        extraction_list = []
         for city in city_list:
             self.driver.get(city)
             wait.until(EC.visibility_of_all_elements_located)
@@ -453,13 +454,23 @@ class Scrap():
         return code
 
     def write_url(self, a_tag_list):
+        """
+        抽出URLの書き込み(シート12列目)
+        """
         url_list = []
         for a in a_tag_list:
             url_list.append("https://www.ekiten.jp" + a.get('href'))
+        
         for url in url_list:
             row = self.sheet.max_row + 1
-            print(row)
-            self.sheet.cell(row=row, column=12, value=url)
+            isWrite = True
+            for r in range(2, self.sheet.max_row):#重複チェック用for loop
+                pre_url = self.sheet.cell(row = r, column=12).value
+                if pre_url == url:
+                    isWrite = False
+                    break
+            if isWrite:
+                self.sheet.cell(row = row, column=12, value=url)         
         self.book.save(self.path)
 
     def extraction_url(self, selector, pre_url):

@@ -154,6 +154,8 @@ class Job():
         self.sum_cnt = self.scraping.sheet.max_row
         self.info_scrap_flg = True
         for r in range(2, self.scraping.sheet.max_row+1):
+            if r % 50 == 0:
+                self.scraping.restart()
             self.scraping.info_scrap(self.scraping.sheet.cell(row=r, column=12).value, r)
             self.scrap_cnt += 1
         self.info_scrap_flg = False
