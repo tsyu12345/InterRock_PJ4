@@ -212,7 +212,7 @@ class Scrap():
             for row2 in range(row+1, self.sheet.max_row+1):
                 deleting_target_url = self.sheet.cell(row=row2, column=12).value 
                 if comparison_url == deleting_target_url:
-                    self.sheet.delete_rows()
+                    self.sheet.delete_rows(row)
 
         self.book.save(self.path)
                 
