@@ -21,7 +21,7 @@ class Scrap():
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        self.options.add_argument("--headless")
+        #self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -120,6 +120,7 @@ class Scrap():
     #全ジャンル抽出の場合
     def search(self, area):  # 検索と条件指定
         #driver_action = ActionChains(self.driver)
+        self.driver.implicitly_wait(5)
         self.driver.get('https://www.ekiten.jp/')
         #wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
         wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
@@ -142,8 +143,8 @@ class Scrap():
             wait.until(EC.visibility_of_all_elements_located)
             print(city)
             #time.sleep(1)
-            select = self.driver.find_element_by_css_selector(
-                'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a')))
+            select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
 
             # 区町村選択がない場合の処理系
             if select in '駅・バス停から探す ':
