@@ -21,7 +21,7 @@ class Scrap():
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        #self.options.add_argument("--headless")
+        self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -120,49 +120,52 @@ class Scrap():
     #全ジャンル抽出の場合
     def search(self, area):  # 検索と条件指定
         #driver_action = ActionChains(self.driver)
-        self.driver.implicitly_wait(5)
+        #self.driver.implicitly_wait(5)
         self.driver.get('https://www.ekiten.jp/')
         #wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
-        wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
-        wait.until(EC.visibility_of_all_elements_located)
+        self.wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
+        self.wait.until(EC.visibility_of_all_elements_located)
         sr_box = self.driver.find_element_by_id('select_form_st_com')
         sr_box.send_keys(area)
         sr_btn = self.driver.find_element_by_css_selector('#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
-        wait.until(EC.visibility_of_all_elements_located)
+        self.wait.until(EC.visibility_of_all_elements_located)
         city_list = self.extraction_url(
             'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
+        #print(city_list)
         result= self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.search_result_heading.u-mb10 > div.search_result_heading_sub > dl > div > dd').text
         result = result.replace(",", "")
         result = result.replace("件", "")
         self.result_cnt = int(result)
         self.count = 0
-        extraction_list = []
         for city in city_list:
             self.driver.get(city)
-            wait.until(EC.visibility_of_all_elements_located)
-            print(city)
+            #wait.until(EC.visibility_of_all_elements_located)
+            #print(city)
             #time.sleep(1)
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a')))
+            #WebDriverWait(self.driver, 180)#Max wait time(second):180s
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a')))
             select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
 
             # 区町村選択がない場合の処理系
             if select in '駅・バス停から探す ':
                 #time.sleep(1)
-                wait.until(EC.visibility_of_all_elements_located)
+                self.wait.until(EC.visibility_of_all_elements_located)
                 junle_list = self.extraction_url(
                     'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                print(junle_list)
+                #print(junle_list)
                 for junle in junle_list:
+                    print(junle)
                     self.driver.get(junle)
-                    wait.until(EC.visibility_of_all_elements_located)
+                    self.wait.until(EC.visibility_of_all_elements_located)
                     #time.sleep(1)
                     kategoli_list = self.extraction_url(
                         'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                    print(kategoli_list)
+                    #print(kategoli_list)
                     for kategoli in kategoli_list:
+                        print(kategoli)
                         self.driver.get(kategoli)
-                        wait.until(EC.visibility_of_all_elements_located)
+                        self.wait.until(EC.visibility_of_all_elements_located)
                         # scrap URL process here
                         self.scrap_url()
                         self.count += 1
@@ -171,25 +174,28 @@ class Scrap():
 
             # 区町村選択がある場合の処理系
             else:
-                wait.until(EC.visibility_of_all_elements_located)
+                self.wait.until(EC.visibility_of_all_elements_located)
                 city_list2 = self.extraction_url(
                     'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
                 for city2 in city_list2:
+                    print(city2)
                     self.driver.get(city2)
-                    wait.until(EC.visibility_of_all_elements_located)
+                    self.wait.until(EC.visibility_of_all_elements_located)
                     #time.sleep(1)
                     junle_list = self.extraction_url(
                         'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                    print(junle_list)
+                    #print(junle_list)
                     for junle in junle_list:
+                        print(junle)
                         self.driver.get(junle)
-                        wait.until(EC.visibility_of_all_elements_located)
+                        self.wait.until(EC.visibility_of_all_elements_located)
                         #time.sleep(1)
                         kategoli_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                        print(kategoli_list)
+                        #print(kategoli_list)
                         for kategoli in kategoli_list:
+                            print(kategoli)
                             self.driver.get(kategoli)
-                            wait.until(EC.visibility_of_all_elements_located)
+                            self.wait.until(EC.visibility_of_all_elements_located)
                             self.scrap_url()
                             self.count += 1
                             # scrap URL process here
@@ -199,10 +205,12 @@ class Scrap():
         self.restart()
 
     def restart(self):
+        self.driver.delete_all_cookies()
         self.driver.quit()
         time.sleep(3)
         self.driver = webdriver.Chrome(
             'chromedriver.exe', options=self.options)
+        self.wait = WebDriverWait(self.driver, 180)
 
     def deduplication(self):
         """
@@ -224,7 +232,7 @@ class Scrap():
             soup = bs(html, 'lxml')
             try:
                 a_tags = soup.select('.p-shop_box_head_title_body > a')
-                print(a_tags)
+                #print(a_tags)
                 self.write_url(a_tags)
                 next_btn = self.driver.find_element_by_css_selector(
                     'div.p-pagination_next > a')
@@ -478,7 +486,7 @@ class Scrap():
         html = self.driver.page_source
         soup = bs(html, 'lxml')
         s = soup.select(selector)
-        # print(s)
+        # #print(s)
         url_list = self.return_url(s, pre_url)
         return url_list
 
@@ -534,8 +542,8 @@ if __name__ == "__main__":
     scraping.search('徳島県')
     for r in range(2, scraping.sheet.max_row+1):
         url = scraping.sheet.cell(row=r, column=13).value
-        print(str(r) + ".scraping at:" + url)
+        #print(str(r) + ".scraping at:" + url)
         scraping.info_scrap(url, r)
     # Test Run
-    print("compleate!!")
+    #print("compleate!!")
     scraping.driver.quit()

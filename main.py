@@ -166,8 +166,9 @@ class Job():
         self.end_flg = True
 
     def cancel(self):
+
         self.scraping.book.save(self.path)
-        self.scraping.driver.quit()
+        self.scraping.driver.quit()    
         self.scraping.deduplication()
         self.scraping.book.save(self.path)
 
@@ -214,7 +215,10 @@ if __name__ == "__main__":
             running = True
             while running:
                 if job.url_scrap_flg:
-                    count = job.scraping.sheet.max_row
+                    try:
+                        count = job.scraping.sheet.max_row
+                    except RuntimeError:
+                        pass
                     if count >= job.scraping.result_cnt:
                         count = job.scraping.result_cnt-1
                     #ProgWindowが消えると、detati判定になってしまうため、上限値を超えないように一時的な対策。
