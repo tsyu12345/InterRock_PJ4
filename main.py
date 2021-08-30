@@ -149,7 +149,8 @@ class Job():
         self.url_scrap_flg = True
         for area in area_list:
             self.scraping.search(area)#指定エリアの店舗URLのサーチ
-        self.scraping.deduplication()#重複の削除
+        print("SE OK")
+        #self.scraping.deduplication()#重複の削除
         self.url_scrap_flg = False
         self.sum_cnt = self.scraping.sheet.max_row
         self.info_scrap_flg = True
@@ -166,10 +167,8 @@ class Job():
         self.end_flg = True
 
     def cancel(self):
-
         self.scraping.book.save(self.path)
         self.scraping.driver.quit()    
-        self.scraping.deduplication()
         self.scraping.book.save(self.path)
 
 if __name__ == "__main__":
