@@ -12,6 +12,8 @@ from bs4 import BeautifulSoup as bs
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+
+
 class Scrap():
     book = px.Workbook()
     sheet = book.worksheets[0]
@@ -39,7 +41,7 @@ class Scrap():
         self.path = path
         self.result_cnt = 2
         self.count = 0
-    
+
     def book_init(self):
         col_list = [
             "エキテン",
@@ -116,52 +118,57 @@ class Scrap():
             "冠婚葬祭"
         ]
         return list
-    
-    #全ジャンル抽出の場合
+
+    # 全ジャンル抽出の場合
     def search(self, area):  # 検索と条件指定
         #driver_action = ActionChains(self.driver)
-        #self.driver.implicitly_wait(5)
+        # self.driver.implicitly_wait(5)
         self.driver.get('https://www.ekiten.jp/')
-        #wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
-        self.wait = WebDriverWait(self.driver, 180)#Max wait time(second):180s
+        # wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
+        # Max wait time(second):180s
+        self.wait = WebDriverWait(self.driver, 180)
         self.wait.until(EC.visibility_of_all_elements_located)
         sr_box = self.driver.find_element_by_id('select_form_st_com')
         sr_box.send_keys(area)
-        sr_btn = self.driver.find_element_by_css_selector('#js_random_top > div > div > div > form > div > input')
+        sr_btn = self.driver.find_element_by_css_selector(
+            '#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
         self.wait.until(EC.visibility_of_all_elements_located)
         city_list = self.extraction_url(
             'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
-        #print(city_list)
-        result= self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.search_result_heading.u-mb10 > div.search_result_heading_sub > dl > div > dd').text
+        # print(city_list)
+        result = self.driver.find_element_by_css_selector(
+            'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.search_result_heading.u-mb10 > div.search_result_heading_sub > dl > div > dd').text
         result = result.replace(",", "")
         result = result.replace("件", "")
         self.result_cnt = int(result)
         self.count = 0
         for city in city_list:
             self.driver.get(city)
-            #wait.until(EC.visibility_of_all_elements_located)
-            #print(city)
-            #time.sleep(1)
-            #WebDriverWait(self.driver, 180)#Max wait time(second):180s
-            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a')))
-            select = self.driver.find_element_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
+            # wait.until(EC.visibility_of_all_elements_located)
+            # print(city)
+            # time.sleep(1)
+            # WebDriverWait(self.driver, 180)#Max wait time(second):180s
+            self.wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a')))
+            select = self.driver.find_element_by_css_selector(
+                'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
 
             # 区町村選択がない場合の処理系
             if select in '駅・バス停から探す ':
-                #time.sleep(1)
+                # time.sleep(1)
                 self.wait.until(EC.visibility_of_all_elements_located)
                 junle_list = self.extraction_url(
                     'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                #print(junle_list)
+                # print(junle_list)
                 for junle in junle_list:
                     print(junle)
                     self.driver.get(junle)
                     self.wait.until(EC.visibility_of_all_elements_located)
-                    #time.sleep(1)
+                    # time.sleep(1)
                     kategoli_list = self.extraction_url(
                         'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                    #print(kategoli_list)
+                    # print(kategoli_list)
                     for kategoli in kategoli_list:
                         print(kategoli)
                         self.driver.get(kategoli)
@@ -181,21 +188,23 @@ class Scrap():
                     print(city2)
                     self.driver.get(city2)
                     self.wait.until(EC.visibility_of_all_elements_located)
-                    #time.sleep(1)
+                    # time.sleep(1)
                     junle_list = self.extraction_url(
                         'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                    #print(junle_list)
+                    # print(junle_list)
                     for junle in junle_list:
                         print(junle)
                         self.driver.get(junle)
                         self.wait.until(EC.visibility_of_all_elements_located)
-                        #time.sleep(1)
-                        kategoli_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                        #print(kategoli_list)
+                        # time.sleep(1)
+                        kategoli_list = self.extraction_url(
+                            'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
+                        # print(kategoli_list)
                         for kategoli in kategoli_list:
                             print(kategoli)
                             self.driver.get(kategoli)
-                            self.wait.until(EC.visibility_of_all_elements_located)
+                            self.wait.until(
+                                EC.visibility_of_all_elements_located)
                             self.scrap_url()
                             self.count += 1
                             # scrap URL process here
@@ -219,12 +228,12 @@ class Scrap():
         for row in range(2, self.sheet.max_row+1):
             comparison_url = self.sheet.cell(row=row, column=12).value
             for row2 in range(row+1, self.sheet.max_row+1):
-                deleting_target_url = self.sheet.cell(row=row2, column=12).value 
+                deleting_target_url = self.sheet.cell(
+                    row=row2, column=12).value
                 if comparison_url == deleting_target_url:
                     self.sheet.delete_rows(row)
 
         self.book.save(self.path)
-                
 
     def scrap_url(self):
         while True:
@@ -232,7 +241,7 @@ class Scrap():
             soup = bs(html, 'lxml')
             try:
                 a_tags = soup.select('.p-shop_box_head_title_body > a')
-                #print(a_tags)
+                # print(a_tags)
                 self.write_url(a_tags)
                 next_btn = self.driver.find_element_by_css_selector(
                     'div.p-pagination_next > a')
@@ -269,8 +278,11 @@ class Scrap():
         )
         table_list = {}
         for menu, info in zip(table_col, table_info):
-            menu = menu.get_text()
-            info = info.get_text()
+            try:
+                menu = menu.get_text()
+                info = info.get_text()
+            except AttributeError:
+                break
             info = info.replace(" ", "")
             info = info.replace("　", "")
             info = info.replace("\n", "")
@@ -286,9 +298,11 @@ class Scrap():
         all_addresses = table_list['住所']
         pref_obj = re.search('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
         pref = pref_obj.group()
-        self.sheet.cell(row=index, column=8, value=self.call_jis_code(pref))  # JISコード
+        self.sheet.cell(row=index, column=8,
+                        value=self.call_jis_code(pref))  # JISコード
         self.sheet.cell(row=index, column=9, value=pref)  # 都道府県名
-        muni = re.split('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)  # 都道府県と市区町村を分離
+        # 都道府県と市区町村を分離
+        muni = re.split('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
         self.sheet.cell(row=index, column=10, value=muni[1])  # 市区町村番地
         self.sheet.cell(row=index, column=11, value=all_addresses)  # フル住所
         self.sheet.cell(row=index, column=12, value=url)  # 店舗URL
@@ -302,13 +316,15 @@ class Scrap():
             url_list = [None, None, None]
         for i in range(3):
             try:
-                self.sheet.cell(row=index, column=14+i, value=url_list[i])  # URLその１～３
+                self.sheet.cell(row=index, column=14+i,
+                                value=url_list[i])  # URLその１～３
             except IndexError:
                 self.sheet.cell(row=index, column=14+i, value=None)
         pankuzu_header = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div').get_text()
         pankuzu = pankuzu_header.replace('\n', " > ")
-        self.sheet.cell(row=index, column=17, value=pankuzu.strip(" > "))  # パンくずヘッダー
+        self.sheet.cell(row=index, column=17,
+                        value=pankuzu.strip(" > "))  # パンくずヘッダー
         try:
             catch_copy = soup.select_one(
                 'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > p').get_text()
@@ -323,7 +339,9 @@ class Scrap():
             official_judge = None
         self.sheet.cell(row=index, column=19, value=official_judge)
         self.sheet.cell(row=index, column=20, value=None)  # 未確認店舗
-        store_score_tag = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_rating > div > div.rating_stars_num.tooltip > span')
+        store_score_tag = soup.select_one(
+            'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_rating > div > div.rating_stars_num.tooltip > span'
+            )
         if store_score_tag == None:
             score = None  # 評価点数
         else:
@@ -339,13 +357,20 @@ class Scrap():
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(3) > div.grid.space15.vertical_space15.js_photo_gallery > div > a > img')
         photo_cnt = len(photo_tag)  # 写真枚数
         self.sheet.cell(row=index, column=23, value=photo_cnt)
-        access = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(1) > div').get_text()
+        access_elm = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(1) > div')
+        access = access_elm.get_text() if access_elm != None else None
         self.sheet.cell(row=index, column=24, value=access)  # アクセス
-        junle1 = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > a').get_text()
+        
+        junle1_elm = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > a')
+        junle1 = junle1_elm.get_text() if junle1_elm != None else None
         self.sheet.cell(row=index, column=25, value=junle1)  # ジャンル１
+        
         junle2_4 = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > span')
+        #ジャンル2~4
         for c, junle in enumerate(junle2_4):
-            self.sheet.cell(row=index, column=26+c, value=junle.get_text())
+            if junle != None:
+                self.sheet.cell(row=index, column=26+c, value=junle.get_text())
+        
         feat_list = [
             "早朝OK",
             "日祝OK",
@@ -362,7 +387,8 @@ class Scrap():
                 break
             for i, list in enumerate(feat_list):
                 if feature.get_text() == list:
-                    self.sheet.cell(row=self.sheet.max_row+1, column=30+i, value="●")  # 店舗の特徴
+                    self.sheet.cell(row=self.sheet.max_row+1,
+                                    column=30+i, value="●")  # 店舗の特徴
                     break  # 見つかったら小ループ抜けて次の特徴へ
         ido_kedo = soup.select_one(
             '#mapDiv > div:nth-child(1) > div > div:nth-child(5) > div > div > div > div > div.place-desc-large > div.place-name')
@@ -469,17 +495,17 @@ class Scrap():
         url_list = []
         for a in a_tag_list:
             url_list.append("https://www.ekiten.jp" + a.get('href'))
-        
+
         for url in url_list:
             row = self.sheet.max_row + 1
             isWrite = True
-            for r in range(2, self.sheet.max_row):#重複チェック用for loop
-                pre_url = self.sheet.cell(row = r, column=12).value
+            for r in range(2, self.sheet.max_row):  # 重複チェック用for loop
+                pre_url = self.sheet.cell(row=r, column=12).value
                 if pre_url == url:
                     isWrite = False
                     break
             if isWrite:
-                self.sheet.cell(row = row, column=12, value=url)         
+                self.sheet.cell(row=row, column=12, value=url)
         self.book.save(self.path)
 
     def extraction_url(self, selector, pre_url):
@@ -496,12 +522,14 @@ class Scrap():
             url_list.append(pre_url+a.get('href'))
         return url_list
 
-def resource_path(relative_path):#バイナリフィルのパスを提供
+
+def resource_path(relative_path):  # バイナリフィルのパスを提供
     try:
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
+
 
 if __name__ == "__main__":
     """
@@ -545,5 +573,5 @@ if __name__ == "__main__":
         #print(str(r) + ".scraping at:" + url)
         scraping.info_scrap(url, r)
     # Test Run
-    #print("compleate!!")
+    # print("compleate!!")
     scraping.driver.quit()
