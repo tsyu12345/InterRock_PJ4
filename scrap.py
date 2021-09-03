@@ -372,10 +372,13 @@ class Scrap():
             if feature == None:  # 特徴タグがない時処理を行わない
                 break
             for i, list in enumerate(feat_list):
-                if feature.get_text() == list:
+                if list in feature.get_text():
                     self.sheet.cell(row=self.sheet.max_row+1,
                                     column=30+i, value="●")  # 店舗の特徴
                     break  # 見つかったら小ループ抜けて次の特徴へ
+        
+        """
+        埋め込みGoogleMapの緯度経度情報についてBeautifulSoupで認識、抽出できない可能性あり。GoogleMapAPIの利用を検討。
         ido_kedo = soup.select_one(
             '#mapDiv > div:nth-child(1) > div > div:nth-child(5) > div > div > div > div > div.place-desc-large > div.place-name')
         if ido_kedo == None:
@@ -385,6 +388,7 @@ class Scrap():
             ido_kedo = ido_kedo.split(" ")
         self.sheet.cell(row=index, column=37, value=ido_kedo[0])  # 緯度
         self.sheet.cell(row=index, column=38, value=ido_kedo[1])  # 経度
+        """
         moyorieki = None
         self.sheet.cell(row=index, column=39, value=moyorieki)  # アクセス/最寄り駅
         try:
