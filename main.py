@@ -150,6 +150,7 @@ class Job():
         for area in area_list:
             self.scraping.search(area)#指定エリアの店舗URLのサーチ
         print("SE OK")
+        
         #self.scraping.deduplication()#重複の削除
         self.url_scrap_flg = False
         self.sum_cnt = self.scraping.sheet.max_row

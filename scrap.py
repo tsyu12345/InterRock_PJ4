@@ -221,20 +221,6 @@ class Scrap():
             'chromedriver.exe', options=self.options)
         self.wait = WebDriverWait(self.driver, 180)
 
-    def deduplication(self):
-        """
-        scrap_url後の重複しているURLを削除する。
-        """
-        for row in range(2, self.sheet.max_row+1):
-            comparison_url = self.sheet.cell(row=row, column=12).value
-            for row2 in range(row+1, self.sheet.max_row+1):
-                deleting_target_url = self.sheet.cell(
-                    row=row2, column=12).value
-                if comparison_url == deleting_target_url:
-                    self.sheet.delete_rows(row)
-
-        self.book.save(self.path)
-
     def scrap_url(self):
         while True:
             html = self.driver.page_source
