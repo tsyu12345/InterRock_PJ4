@@ -6,3 +6,4 @@ chromedriver.exe
 chrome-win
 *.csv
 *.png
+.venv
