@@ -3,7 +3,7 @@ from PySimpleGUI.PySimpleGUI import popup, popup_error
 import sys
 from scrap import Scrap
 #from multiprocessing import Pool
-import threading
+import threading as th
 class AreaSelect:
     def lay_out(self):
         L = [
@@ -86,8 +86,10 @@ def obj_frame(lay_out_data):
     return L
 
 class Job():
-    def __init__(self, path):
+    def __init__(self, path, junle, area_list):
         self.path = path
+        self.junle = junle
+        self.area_list = area_list
         self.scraping = Scrap(path)
         self.scraping.book_init()
         self.url_scrap_flg = False
@@ -96,62 +98,56 @@ class Job():
         self.save_flg = False
         self.sum_cnt = 1#抽出中URLの合計
         self.scrap_cnt = 0#スクレイピング件数
-    
-    """
-    def custom_scrap(self, area_list, junle):
-        for area in area_list:
-            self.driver.get('https://www.ekiten.jp/')
-            sr_box = self.driver.find_element_by_css_selector(
-                '#select_form_st_com')
-            sr_box.send_keys(area)
-            sr_btn = self.driver.find_element_by_css_selector(
-                '#js_random_top > div > div > div > form > div > input')
-            sr_btn.click()
-            city_list = self.extraction_url(
-                'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
 
-            for city in city_list:
-                self.driver.get(city)
-                print(city)
-                time.sleep(1)
-                select = self.driver.find_element_by_css_selector(
-                    'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > a').text
-
-                # 区町村選択がない場合の処理系
-                if select in '駅・バス停から探す ':
-                    #junle select and scrap hrere
-                # 区町村選択がある場合の処理系
-                else:
-                    city_list2 = self.extraction_url(
-                        'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(3) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                    for city2 in city_list2:
-                        self.driver.get(city2)
-                        time.sleep(1)
-                        junle_list = self.extraction_url(
-                            'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                        print(junle_list)
-                        for junle in junle_list:
-                            self.driver.get(junle)
-                            time.sleep(1)
-                            kategoli_list = self.extraction_url('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a', 'https://www.ekiten.jp')
-                            print(kategoli_list)
-                            for kategoli in kategoli_list:
-                                self.driver.get(kategoli)
-                                self.scrap_url()
-                                # scrap URL process here
-                            self.restart()
-                    self.restart()
-                self.restart()
-    """
-    #def junleselect(self):
-        
-    def scrap(self, area_list):
+    def __url_search(self):
+        #URL scraping
         self.url_scrap_flg = True
-        for area in area_list:
+        for area in self.area_list:
             self.scraping.search(area)#指定エリアの店舗URLのサーチ
-        print("SE OK")
         
-        #self.scraping.deduplication()#重複の削除
+    def scrap(self):
+        if self.junle == '全ジャンル抽出':
+            self.url_scrap_flg = True
+            thread = th.Thread(target=self.__url_search)
+        thread.start()
+
+        #info scraping 
+        scraped_row = 2 #初期値2行目
+        readyed_row = 1 #初期値1行目
+        self.info_scrap_flg = True
+        while self.info_scrap_flg:
+            if thread.is_alive != True and self.url_scrap_flg == True:
+                #url searchの終了
+                self.url_scrap_flg = False
+            if self.url_scrap_flg == False and scraped_row == readyed_row:
+                #全終了
+                self.info_scrap_flg = False
+                break 
+                
+            for row in range(scraped_row, readyed_row+1):
+                if self.scraping.sheet.cell(row=row, column=12).value != None:#URL抽出済行
+                    if row % 50 == 0:
+                        self.scraping.restart()
+                    self.scraping.info_scrap(self.scraping.sheet.cell(row=row, column=12).value, row)
+                    self.scrap_cnt += 1
+                elif self.scraping.sheet.cell(row=row, column=12).value == None: #未検索行
+                    scraped_row = row
+                    print("for break")
+                    break
+                scraped_row = readyed_row
+                readyed_row = self.scraping.sheet_row
+        """
+        saving data file and quit webdriver
+        """
+        self.info_scrap_flg = False
+        self.save_flg = True
+        self.scraping.book.save(self.path)
+        self.scraping.driver.quit()
+        self.save_flg = False
+        self.end_flg = True
+        
+        
+        """
         self.url_scrap_flg = False
         self.sum_cnt = self.scraping.sheet.max_row
         self.info_scrap_flg = True
@@ -160,12 +156,8 @@ class Job():
                 self.scraping.restart()
             self.scraping.info_scrap(self.scraping.sheet.cell(row=r, column=12).value, r)
             self.scrap_cnt += 1
-        self.info_scrap_flg = False
-        self.save_flg = True
-        self.scraping.book.save(self.path)
-        self.scraping.driver.quit()
-        self.save_flg = False
-        self.end_flg = True
+        """
+        
 
     def cancel(self):
         self.scraping.book.save(self.path)
@@ -210,7 +202,7 @@ if __name__ == "__main__":
             job = Job(path=value['path'])
             #pool = Pool(1)
             #pool.apply_async(job.scrap, args=[pref_list])
-            th1 = threading.Thread(target=job.scrap, args=[pref_list], daemon=True)
+            th1 = th.Thread(target=job.scrap, args=[pref_list], daemon=True)
             th1.start()
             running = True
             while running:
