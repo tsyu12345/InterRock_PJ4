@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup as bs
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-
+import requests
 
 class Scrap():
     book = px.Workbook()
@@ -241,19 +241,15 @@ class Scrap():
         self.driver.get(url)
         html = self.driver.page_source
         soup = bs(html, 'lxml')
-        try:
-            junle = soup.select_one(
-                'body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div > a:nth-child(3)'
-            ).get_text()
-        except AttributeError:
-            junle = None
+        junle_elm = soup.select_one(
+            'body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div > a:nth-child(3)'
+        )
+        junle = junle_elm.get_text() if junle_elm != None else None
         self.sheet.cell(row=index, column=3, value=junle)  # ジャンル
-        try:
-            tel = soup.select_one(
-                'body > div:nth-child(12) > div > div.p-tel_modal_phone_number > div > div > p'
-            ).get_text()
-        except AttributeError:
-            tel = None
+        tel_elm = soup.select_one(
+            'body > div:nth-child(12) > div > div.p-tel_modal_phone_number > div > div > p'
+        )
+        tel = tel_elm.get_text() if tel_elm != None else None
         self.sheet.cell(row=index, column=4, value=tel)  # TEL
         # table info scraping
         table_col = soup.select(
@@ -275,11 +271,10 @@ class Scrap():
             info = info.replace("地図で場所を見るGoogleマップで見る", "")
             table_list[menu] = info
         self.sheet.cell(row=index, column=5, value=table_list['店舗名'])
-        try:
-            store_kana = soup.select_one(
-                'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div > div.p-shop_header_name_container > div > span').get_text()
-        except AttributeError:
-            store_kana = None
+        store_kana_elm = soup.select_one(
+            'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div > div.p-shop_header_name_container > div > span'
+            )
+        store_kana = store_kana_elm.get_text() if store_kana_elm != None else None
         self.sheet.cell(row=index, column=6, value=store_kana)
         all_addresses = table_list['住所']
         pref_obj = re.search('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
@@ -311,18 +306,15 @@ class Scrap():
         pankuzu = pankuzu_header.replace('\n', " > ")
         self.sheet.cell(row=index, column=17,
                         value=pankuzu.strip(" > "))  # パンくずヘッダー
-        try:
-            catch_copy = soup.select_one(
-                'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > p').get_text()
-        except AttributeError:
-            catch_copy = None
+        
+        catch_copy_elm = soup.select_one(
+            'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > p'
+            )
+        catch_copy = catch_copy_elm.get_text() if catch_copy_elm != None else None
         self.sheet.cell(row=index, column=18, value=catch_copy)
         official = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > div > span')
-        if official != None:
-            official_judge = "●"  # 店舗公式
-        else:
-            official_judge = None
+        official_judge = '●' if official != None else None
         self.sheet.cell(row=index, column=19, value=official_judge)
         self.sheet.cell(row=index, column=20, value=None)  # 未確認店舗
         store_score_tag = soup.select_one(
@@ -357,74 +349,63 @@ class Scrap():
             if junle != None:
                 self.sheet.cell(row=index, column=26+c, value=junle.get_text())
         
-        feat_list = [
-            "早朝OK",
-            "日祝OK",
-            "夜間OK",
-            "駐車場有",
-            "ネット予約",
-            "クーポン有",
-            "カード可",
-            "出張・宅配あり",
-        ]
+        
         features = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_tag_list.tag_group > li')
         for feature in features:
             if feature == None:  # 特徴タグがない時処理を行わない
                 break
-            for i, list in enumerate(feat_list):
-                if list in feature.get_text():
-                    self.sheet.cell(row=self.sheet.max_row+1,
-                                    column=30+i, value="●")  # 店舗の特徴
+            
+            for col in range(29, 36+1): 
+                if self.sheet.cell(row=1, column=col).value in feature.get_text():
+                    self.sheet.cell(row=index, column=29+i, value="●")  # 店舗の特徴
                     break  # 見つかったら小ループ抜けて次の特徴へ
         
-        """
-        埋め込みGoogleMapの緯度経度情報についてBeautifulSoupで認識、抽出できない可能性あり。GoogleMapAPIの利用を検討。
-        ido_kedo = soup.select_one(
-            '#mapDiv > div:nth-child(1) > div > div:nth-child(5) > div > div > div > div > div.place-desc-large > div.place-name')
-        if ido_kedo == None:
-            ido_kedo = (None, None)
-        else:
-            ido_kedo = ido_kedo.get_text()
-            ido_kedo = ido_kedo.split(" ")
-        self.sheet.cell(row=index, column=37, value=ido_kedo[0])  # 緯度
-        self.sheet.cell(row=index, column=38, value=ido_kedo[1])  # 経度
-        """
+        #緯度・経度
+        latlong = self.calcLatLong(all_addresses)
+        self.sheet.cell(row=index, column=37, value=latlong[0])
+        self.sheet.cell(row=index, column=38, value=latlong[1])
+
         moyorieki = None
         self.sheet.cell(row=index, column=39, value=moyorieki)  # アクセス/最寄り駅
+        holiday_d_time_elm = soup.select_one(
+            'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(3) > div'
+        )
+        holiday_d_time = holiday_d_time_elm.get_text() if holiday_d_time_elm != None else None
         try:
-            holiday_d_time = soup.select_one(
-                'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(3) > div').get_text()
             holiday_d_time = holiday_d_time.replace("\n", "/")
             holiday_d_time = holiday_d_time.replace(" ", "")
         except AttributeError:
-            holiday_d_time = None
+            pass
         self.sheet.cell(row=index, column=40, value=holiday_d_time)  # 営業時間/定休日
 
-        menu_list = [
-            "駐車場",
-            "クレジットカード",
-            "座席",
-            "用途",
-            "メニュー",
-            "特徴",
-            "ポイント",
-            "ここがすごい！",
-            "メディア関連",
-            "価格設定",
-            "マルチアクセス",
-        ]
-        for c, menu in enumerate(menu_list):
+        for col in range(41, 51+1):
+            menu = self.sheet.cell(row=1, column=col).value
             try:
-                self.sheet.cell(row=index, column=41+c, value=table_list[menu])
+                self.sheet.cell(row=index, column=col, value=table_list[menu])
             except KeyError:
-                self.sheet.cell(row=index, column=41+c, value=None)
-        try:
-            introduction = soup.select_one(
-                'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(2) > div > div > div.p-shop_introduction_content.js_toggle_content > p').get_text()
-        except AttributeError:
-            introduction = None
-        self.sheet.cell(row=index, column=52, value=introduction)
+                self.sheet.cell(row=index, column=col, value=None)
+        
+        introduction_elm = soup.select_one('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(2) > div > div > div.p-shop_introduction_content.js_toggle_content > p')
+        introduction = introduction_elm.get_text() if introduction_elm != None else None
+        self.sheet.cell(row=index, column=52, value=introduction) #紹介文
 
+    def calcLatLong(self, address:str):
+        """
+        using geocoding.jp API.
+        this function return [latitude ,longitude].
+        if callback error from API, will return ['取得失敗', '取得失敗'].       
+        """
+        url = 'http://www.geocoding.jp/api/'
+        payload = {'q':address}
+        html = requests.get(url, params=payload)
+        soup = bs(html.content, 'lxml')
+        if soup.find('error'):
+            return ['取得失敗', '取得失敗']
+        else:
+            lat = soup.find('lat').string #緯度
+            long = soup.find('lng').string #経度
+            return [lat, long]
+        
     def call_jis_code(self, key):
         pref_jiscode = {
             "北海道": 1,
