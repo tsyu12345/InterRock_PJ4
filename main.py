@@ -96,7 +96,7 @@ class Job():
         self.info_scrap_flg = False
         self.end_flg = False
         self.save_flg = False
-        self.sum_cnt = 1#抽出中URLの合計
+        self.sum_cnt = 1#抽出の合計
         self.scrap_cnt = 0#スクレイピング件数
 
     def __url_search(self):
@@ -136,6 +136,8 @@ class Job():
                     break
                 scraped_row = readyed_row
                 readyed_row = self.scraping.sheet_row
+                self.sum_cnt = readyed_row
+                
         """
         saving data file and quit webdriver
         """
@@ -178,7 +180,7 @@ if __name__ == "__main__":
         big_junle_slc[0], big_junle_slc[1],    
     ]
     layout = obj_frame([frame1, path_obj.lay_out()])
-    win = gui.Window('エキテン掲載情報 抽出ツール', layout=layout)
+    win = gui.Window('エキテン掲載情報 抽出ツール', layout=layout, icon='1258d548c5548ade5fb2061f64686e40_xxo.ico')
     comp_flg = False
     running = False
     detati = False
@@ -199,30 +201,11 @@ if __name__ == "__main__":
         if event == '抽出実行':
             pref_list = value['pref_name'].split(",")
             print(pref_list)
-            job = Job(path=value['path'])
-            #pool = Pool(1)
-            #pool.apply_async(job.scrap, args=[pref_list])
-            th1 = th.Thread(target=job.scrap, args=[pref_list], daemon=True)
+            job = Job(value['path'], value['Big_junle'], pref_list)
+            th1 = th.Thread(target=job.scrap, daemon=True)
             th1.start()
             running = True
             while running:
-                if job.url_scrap_flg:
-                    try:
-                        count = job.scraping.sheet.max_row
-                    except RuntimeError:
-                        pass
-                    if count >= job.scraping.result_cnt:
-                        count = job.scraping.result_cnt-1
-                    #ProgWindowが消えると、detati判定になってしまうため、上限値を超えないように一時的な対策。
-                    run = gui.OneLineProgressMeter("処理中です...", count, job.scraping.result_cnt, 'prog', "掲載URLを抽出中です...。\nブラウザが複数回再起動します。", orientation='h')
-                    if run == False and job.url_scrap_flg:
-                        gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
-                        job.cancel()
-                        #pool.terminate()
-                        detati = True
-                        running = False
-                        break
-                           
                 if job.info_scrap_flg:
                     run = gui.OneLineProgressMeter("処理中です...", job.scrap_cnt, job.sum_cnt, 'prog', "店舗情報を抽出中です。\nブラウザが複数回再起動します。")
                     if run == False and job.info_scrap_flg:
