@@ -1,5 +1,5 @@
 import PySimpleGUI as gui
-from PySimpleGUI.PySimpleGUI import popup, popup_error
+from PySimpleGUI.PySimpleGUI import T, popup, popup_error
 import sys
 from scrap import Scrap
 #from multiprocessing import Pool
@@ -108,7 +108,7 @@ class Job():
     def scrap(self):
         if self.junle == '全ジャンル抽出':
             self.url_scrap_flg = True
-            thread = th.Thread(target=self.__url_search)
+            thread = th.Thread(target=self.__url_search, daemon=True)
         thread.start()
 
         #info scraping 
@@ -116,27 +116,31 @@ class Job():
         readyed_row = 1 #初期値1行目
         self.info_scrap_flg = True
         while self.info_scrap_flg:
-            if thread.is_alive != True and self.url_scrap_flg == True:
+            if thread.is_alive() != True and self.url_scrap_flg == True:
                 #url searchの終了
+                print("URL search end")
                 self.url_scrap_flg = False
             if self.url_scrap_flg == False and scraped_row == readyed_row:
                 #全終了
                 self.info_scrap_flg = False
+                ("all scrap process end")
                 break 
                 
             for row in range(scraped_row, readyed_row+1):
                 if self.scraping.sheet.cell(row=row, column=12).value != None:#URL抽出済行
                     if row % 50 == 0:
                         self.scraping.restart()
+                    print("scrap:" + str(row))
                     self.scraping.info_scrap(self.scraping.sheet.cell(row=row, column=12).value, row)
                     self.scrap_cnt += 1
                 elif self.scraping.sheet.cell(row=row, column=12).value == None: #未検索行
                     scraped_row = row
                     print("for break")
                     break
-                scraped_row = readyed_row
-                readyed_row = self.scraping.sheet_row
-                self.sum_cnt = readyed_row
+            scraped_row = readyed_row
+            readyed_row = self.scraping.sheet_row
+            self.sum_cnt = readyed_row
+            print("row renew")
                 
         """
         saving data file and quit webdriver
@@ -163,8 +167,8 @@ class Job():
 
     def cancel(self):
         self.scraping.book.save(self.path)
-        self.scraping.driver.quit()    
-        self.scraping.book.save(self.path)
+        self.scraping.driver.quit()
+        self.scraping.sub_driver.quit()
 
 if __name__ == "__main__":
     gui.theme('BluePurple')
