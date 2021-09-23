@@ -2,7 +2,7 @@ import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, popup, popup_error
 import sys
 from scrap import Scrap
-#from multiprocessing import Pool
+from multiprocessing import Pool
 import threading as th
 class AreaSelect:
     def lay_out(self):
@@ -108,6 +108,8 @@ class Job():
     def scrap(self):
         if self.junle == '全ジャンル抽出':
             self.url_scrap_flg = True
+            p = Pool()
+            #thread = p.apply_async(self.__url_search)
             thread = th.Thread(target=self.__url_search, daemon=True)
         thread.start()
 
@@ -126,7 +128,7 @@ class Job():
                 ("all scrap process end")
                 break 
                 
-            for row in range(scraped_row, readyed_row+1):
+            for row in range(scraped_row, readyed_row):
                 if self.scraping.sheet.cell(row=row, column=12).value != None:#URL抽出済行
                     if row % 50 == 0:
                         self.scraping.restart()
@@ -137,10 +139,10 @@ class Job():
                     scraped_row = row
                     print("for break")
                     break
-            scraped_row = readyed_row
+            scraped_row = readyed_row+1
             readyed_row = self.scraping.sheet_row
             self.sum_cnt = readyed_row
-            print("row renew")
+            #print("row renew")
                 
         """
         saving data file and quit webdriver
@@ -211,7 +213,7 @@ if __name__ == "__main__":
             running = True
             while running:
                 if job.info_scrap_flg:
-                    run = gui.OneLineProgressMeter("処理中です...", job.scrap_cnt, job.sum_cnt, 'prog', "店舗情報を抽出中です。\nブラウザが複数回再起動します。")
+                    run = gui.OneLineProgressMeter("処理中です...", job.scrap_cnt, job.scraping.sheet_row, 'prog', "店舗情報を抽出中です。\nブラウザが複数回再起動します。")
                     if run == False and job.info_scrap_flg:
                         gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
                         job.cancel()

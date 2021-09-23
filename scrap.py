@@ -42,6 +42,7 @@ class Scrap():
         self.result_cnt = 2
         self.count = 0
         self.sheet_row = 1
+        self.write_row = 1
 
     def book_init(self):
         col_list = [
@@ -477,7 +478,10 @@ class Scrap():
             url_list.append("https://www.ekiten.jp" + a.get('href'))
 
         for url in url_list:
-            row = self.sheet.max_row + 1
+            try:
+                row = self.sheet.max_row + 1
+            except RuntimeError:
+                row = self.wirte_row + 1
             isWrite = True
             for r in range(2, self.sheet.max_row):  # 重複チェック用for loop
                 pre_url = self.sheet.cell(row=r, column=12).value
@@ -487,7 +491,11 @@ class Scrap():
             if isWrite:
                 print(url)
                 self.sheet.cell(row=row, column=12, value=url)
-        self.sheet_row = self.sheet.max_row
+                self.write_row += 1
+        try:
+            self.sheet_row = self.sheet.max_row
+        except RuntimeError:
+            self.sheet_row = self.write_row
         #self.book.save(self.path)
 
     def extraction_url(self, selector, pre_url):
