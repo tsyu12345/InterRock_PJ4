@@ -481,9 +481,13 @@ class Scrap():
             try:
                 row = self.sheet.max_row + 1
             except RuntimeError:
-                row = self.wirte_row + 1
+                row = self.write_row + 1
             isWrite = True
-            for r in range(2, self.sheet.max_row):  # 重複チェック用for loop
+            try:
+                preload = self.sheet.max_row
+            except RuntimeError:
+                preload = self.write_row
+            for r in range(2, preload):  # 重複チェック用for loop
                 pre_url = self.sheet.cell(row=r, column=12).value
                 if pre_url == url:
                     isWrite = False
