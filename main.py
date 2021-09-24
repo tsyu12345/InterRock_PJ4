@@ -108,7 +108,7 @@ class Job():
     def scrap(self):
         if self.junle == '全ジャンル抽出':
             self.url_scrap_flg = True
-            p = Pool()
+            #p = Pool()
             #thread = p.apply_async(self.__url_search)
             thread = th.Thread(target=self.__url_search, daemon=True)
         thread.start()
