@@ -5,7 +5,7 @@ import sys
 import os
 import time
 from selenium import webdriver
-from selenium.common.exceptions import InvalidSessionIdException, NoSuchElementException, WebDriverException
+from selenium.common.exceptions import InvalidSessionIdException, NoSuchElementException, WebDriverException, TimeoutException
 #from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup as bs
@@ -68,7 +68,7 @@ class ScrapingURL(object):
         city_list = self.extraction_url(
             'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
         print(city_list)
-        result = self.sub_driver.find_element_by_css_selector(
+        result:str = self.sub_driver.find_element_by_css_selector(
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.search_result_heading.u-mb10 > div.search_result_heading_sub > dl > div > dd').text
         result = result.replace(",", "")
         result = result.replace("件", "")
@@ -269,7 +269,13 @@ class ScrapingInfomation(ScrapingURL):
         指定ページにアクセスしHTMLをロードする。
         その後、__extraction()を呼びだす。
         """
-        self.driver.get(url)
+        try:
+            self.driver.get(url)
+        except TimeoutException:
+            self.restart()
+            time.sleep(30)
+            self.driver.get(url)
+            
         html = self.driver.page_source
         self.__extraction(index, html, url)
     
@@ -401,6 +407,7 @@ class ScrapingInfomation(ScrapingURL):
                     break  # 見つかったら小ループ抜けて次の特徴へ
         
         #緯度・経度
+        time.sleep(5) #API接続の感覚を空ける。
         latlong = self.calcLatLong(all_addresses)
         self.sheet.cell(row=index, column=37, value=latlong[0])
         self.sheet.cell(row=index, column=38, value=latlong[1])
@@ -439,11 +446,11 @@ class ScrapingInfomation(ScrapingURL):
         payload = {'q':address}
         try:
             html = requests.get(url, params=payload)
-        except ConnectionError:
+        except:
             time.sleep(60)
             try:
                 html = requests.get(url, params=payload)
-            except ConnectionError:
+            except:
                 return ['取得失敗', '取得失敗']
         soup = bs(html.content, 'lxml')
         if soup.find('error'):
