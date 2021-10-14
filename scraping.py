@@ -1,10 +1,12 @@
-from PySimpleGUI.PySimpleGUI import No
+from multiprocessing.managers import RemoteError
+from PySimpleGUI.PySimpleGUI import T, No
 from bs4.builder import TreeBuilder
 import openpyxl as px
 import re
 import sys
 import os
 import time
+from requests import api
 from selenium import webdriver
 from selenium.common.exceptions import InvalidSessionIdException, NoSuchElementException, WebDriverException, TimeoutException
 #from selenium.webdriver.support.select import Select
@@ -198,87 +200,43 @@ class ScrapingURL(object):
     
 class ScrapingInfomation(ScrapingURL):
     
-    book = px.Workbook()
-    sheet = book.worksheets[0]
     
-    def __init__(self, path, row_counter, url_list_data):
+    def __init__(self, path, row_counter, url_list_data, info_datas, end_count):
         super(ScrapingInfomation, self).__init__(path, row_counter, url_list_data)
-        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
-        self.book_init()
+        #self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        self.info_datas = info_datas #共有メモリ上の結果格納リスト
+        self.end_count = end_count #共有メモリ上のカウンタ変数
 
-    def book_init(self):
-        col_list = [
-            "エキテン",
-            "新規リスト投入日",
-            "ジャンル",
-            "電話",
-            "店舗名",
-            "店舗名カナ",
-            "料金プラン",
-            "都道府県コード",
-            "都道府県",
-            "市区町村・番地",
-            "住所フル",
-            "店舗URL",
-            "shopID",
-            "URLその1",
-            "URLその2",
-            "URLその3",
-            "パンくず",
-            "キャッチ",
-            "店舗公式",
-            "未確認店舗",
-            "評価点数",
-            "口コミ数",
-            "写真枚数",
-            "アクセス",
-            "ジャンル1",
-            "ジャンル2",
-            "ジャンル3",
-            "ジャンル4",
-            "早朝OK",
-            "日祝OK",
-            "夜間OK",
-            "駐車場有",
-            "ネット予約",
-            "クーポン有",
-            "カード可",
-            "出張・宅配あり",
-            "緯度",
-            "経度",
-            "アクセス／最寄駅",
-            "営業時間／定休日",
-            "駐車場",
-            "クレジットカード",
-            "座席",
-            "用途",
-            "メニュー",
-            "特徴",
-            "ポイント",
-            "ここがすごい！",
-            "メディア関連",
-            "価格設定",
-            "マルチアクセス",
-            "紹介文"
-        ]
-        for col, menu in enumerate(col_list):
-            self.sheet.cell(row=1, column=col+1, value=menu)
-        self.book.save(self.path)
-
-    def requestHTML(self, url, index):
+    
+    def requestHTML(self, url_list:list):
         """
         指定ページにアクセスしHTMLをロードする。
         その後、__extraction()を呼びだす。
         """
-        try:
-            self.driver.get(url)
-        except TimeoutException:
-            self.restart()
-            time.sleep(30)
-            self.driver.get(url)
+        driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        wait = WebDriverWait(driver, 180)
+        load_counter = 0
+        for url in url_list:
+            if load_counter % 100 == 0 and load_counter != 0:
+                driver.delete_all_cookies()
+                driver.quit()
+                time.sleep(10)
+                driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+                wait = WebDriverWait(driver, 180) 
             
-        html = self.driver.page_source
-        self.__extraction(index, html, url)
+            try:
+                driver.get(url)
+            except TimeoutException:
+                self.restart()
+                time.sleep(30)
+                driver.get(url)
+                
+            html = driver.page_source
+            data_list:list = self.__extraction(html, url)
+            self.info_datas.append(data_list) #結果を共有メモリ上のリストへ格納
+            self.end_count.value += 1
+            load_counter += 1
+        driver.quit()
     
     def __create_data_list(self, data_length):
         """
@@ -290,7 +248,7 @@ class ScrapingInfomation(ScrapingURL):
             data_list.append(None)
         return data_list
 
-    def __extraction(self, index, html, url):
+    def __extraction(self, html, url) -> list:
         """
         HTMLを受け取り、結果をリストで返す。
         """
@@ -493,6 +451,7 @@ class ScrapingInfomation(ScrapingURL):
         introduction = introduction_elm.get_text() if introduction_elm != None else None
         data_list[51] = introduction
         #self.sheet.cell(row=index, column=52, value=introduction) #紹介文
+        print(data_list)
         return data_list
 
     def calcLatLong(self, address:str):
@@ -575,6 +534,7 @@ class ScrapingInfomation(ScrapingURL):
         code = pref_jiscode[key]
         return code 
 
+    
     def restart(self):
         """
         スクレイピング用ドライバおよびブラウザの再起動。
@@ -591,9 +551,10 @@ class WriteWorkBook():
     book = px.Workbook()
     sheet = book.worksheets[0]
 
-    def __init__(self, path, end_count):
+    def __init__(self, path):
         self.path = path
-        self.end_count = end_count
+        #self.end_count = end_count
+        self.__init_work_book()
 
     def __init_work_book(self):
         menu_list = [
@@ -666,53 +627,138 @@ class WriteWorkBook():
                 return False
         return True 
 
-
 class Implementation():
     def __init__(self, path, area_list, junle):
         self.area_list = area_list
         self.junle = junle
+        self.path = path
         self.manager = Manager()
         self.max_row_counter = self.manager.Value('i', 0)
         self.scrap_url_list = self.manager.list()
+        self.end_count = self.manager.Value('i', 0)
+        self.info_data_list = self.manager.list()
+        self.writeBook = WriteWorkBook(self.path)
         self.search = ScrapingURL(path, self.max_row_counter, self.scrap_url_list)
-        self.scrap = ScrapingInfomation(path, self.max_row_counter, self.scrap_url_list)
-        self.end_count = 0
+        self.scrap = ScrapingInfomation(path, self.max_row_counter, self.scrap_url_list, self.info_data_list, self.end_count)
+        self.scrap2 = ScrapingInfomation(path, self.max_row_counter, self.scrap_url_list, self.info_data_list, self.end_count)   
+        self.scrap3 = ScrapingInfomation(path, self.max_row_counter, self.scrap_url_list, self.info_data_list, self.end_count)
+        self.p = Pool()
+        self.list1 = []
+        self.list2 = []
+        self.list3 = []
         self.search_sum = 1
+        self.book_index = 2 #ワークシート書き込み行数の初期値
     
+    def create_url_data_list(self):
+        addCounter = 0
+        addLength = len(self.scrap_url_list)
+        while addCounter < addLength:
+            try:
+                self.list1.append(self.scrap_url_list.pop(0))
+                self.list2.append(self.scrap_url_list.pop(0))
+                self.list3.append(self.scrap_url_list.pop(0))
+            except IndexError:
+                #3つに渡せるほどない場合。このメソッドを即座に終了。
+                break
+            addCounter += 3
+
+    def info_datas_writing(self):
+        """
+        共有メモリ上のリストを監視し、リストがemptyでない限り書き込みを続ける。
+        """
+        print("called!")
+        length = len(self.info_data_list)
+        #print("write_data_len : " + str(length))
+        for i in range(0, length):
+            #print(self.info_datas.empty())
+            #print(self.info_datas[0])
+            #data = self.info_datas[i]
+            #print(data)
+            try:
+                self.writeBook.write_data(self.info_data_list.pop(0), self.book_index)
+            except RemoteError:
+                print(self.info_data_list)
+                pass
+                    #self.end_count += 1
+            #self.writed_index += 1
+            self.book_index += 1
+        self.writeBook.book.save(self.writeBook.path)
+
+    def call_counter_value(self):
+        """
+        呼び出し時点での進捗状況の値を返却する。[抽出済み件数, 検索結果数]
+        """
+        return self.end_count.value, self.search_sum
+
+    def cancel(self):
+        try:
+            self.info_datas_writing()
+            self.writeBook.book.save(self.writeBook.path)
+            self.p.terminate()
+        except:
+            pass
+        
     def run(self):
-        p = Pool()
-        future = p.apply_async(self.search.search, args=([self.area_list]))
+        #p = Pool()
+        future = self.p.apply_async(self.search.search, args=([self.area_list]))
         scrap_flg = True
         search_flg = True
-        scraped_index = 0
-        readyed_index = 0
-        while scrap_flg:
-            self.search_sum = len(self.scrap_url_list)
-            for index in range(scraped_index, readyed_index):
-                if self.end_count % 100 == 0:
-                    self.scrap.restart()
-                self.scrap.requestHTML(self.scrap_url_list[index], index+2)
-                self.end_count += 1
-                self.search_sum = len(self.scrap_url_list)
 
-            scraped_index = readyed_index
-            readyed_index = self.search.row_counter.value #最大読み込み行数の更新
+        while scrap_flg:
+            self.search_sum = self.search.row_counter.value
+            if len(self.scrap_url_list) > 0:
+                self.create_url_data_list()
+                result1 = self.p.apply_async(self.scrap.requestHTML, args=([self.list1]))
+                result2 = self.p.apply_async(self.scrap2.requestHTML, args=([self.list2]))
+                result3 = self.p.apply_async(self.scrap3.requestHTML, args=([self.list3]))
             
-            if future.ready():
-                future.get()
-                search_flg = False
-            
-            if (search_flg == False and 
-                scrap_flg == True and 
-                readyed_index != 0 and
-                readyed_index == scraped_index):
-                scrap_flg = False
-                print("break!!")
-                self.scrap.book.save(self.search.path)
-                #self.search.sub_driver.quit()
-                self.scrap.driver.quit()
-                break
+                doing = True
+                async_result = [False, False, False]
+                while doing:
+                    self.search_sum = self.search.row_counter.value
+                    if False not in async_result:
+                        doing = False
+                        if len(self.info_data_list) > 0:
+                            self.info_datas_writing()
+                        break
+
+                    if result1.ready():
+                        print("result1 end")
+                        async_result[0] = True
+                        self.list1.clear()
+                        
+                    if result2.ready():
+                        print("result2 end")
+                        async_result[1] = True
+                        self.list2.clear()
+
+                    if result3.ready():
+                        print("result3 end")
+                        async_result[2] = True
+                        self.list3.clear()        
+
+                self.search_sum = self.search.row_counter.value
+
+                if future.ready():
+                    future.get()
+                    self.search_sum = self.search.row_counter.value
+                    search_flg = False
+                
+                if (search_flg == False and
+                    scrap_flg == True and 
+                    self.search_sum == self.end_count.value):
+                    scrap_flg = False
+                    self.info_datas_writing()
+                    self.writeBook.book.save(self.writeBook.path)
+                    break
+
+def resource_path(relative_path):#バイナリフィルのパスを提供
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(__file__)
+    return os.path.join(base_path, relative_path)
 
 if __name__ == "__main__":
-    test = Implementation('/run_test.xlsx', ['徳島県'], '全ジャンル抽出')
+    test = Implementation('./multiprocess_run_test.xlsx', ['徳島県'], '全ジャンル抽出')
     test.run()
