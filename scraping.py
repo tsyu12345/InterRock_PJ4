@@ -1,4 +1,5 @@
 from PySimpleGUI.PySimpleGUI import No
+from bs4.builder import TreeBuilder
 import openpyxl as px
 import re
 import sys
@@ -279,24 +280,35 @@ class ScrapingInfomation(ScrapingURL):
         html = self.driver.page_source
         self.__extraction(index, html, url)
     
+    def __create_data_list(self, data_length):
+        """
+        指定数分のNone要素のみのリストを作成。\n
+        data = [None, None, None ......(len() = data_length)]
+        """
+        data_list = []
+        for i in range(data_length):
+            data_list.append(None)
+        return data_list
+
     def __extraction(self, index, html, url):
         """
-        worksheetの指定indexに書き込み。
+        HTMLを受け取り、結果をリストで返す。
         """
-
-        self.sheet.cell(row=index, column=1, value=None)  # A列
-        self.sheet.cell(row=index, column=2, value=None)  # B列
+        data_list = self.__create_data_list(53)
+        #data_list[0],[1] = None : A列とB列は空欄
         soup = bs(html, 'lxml')
         junle_elm = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div > a:nth-child(3)'
         )
         junle = junle_elm.get_text() if junle_elm != None else None
-        self.sheet.cell(row=index, column=3, value=junle)  # ジャンル
+        data_list[2] = junle
+        #self.sheet.cell(row=index, column=3, value=junle)  # ジャンル
         tel_elm = soup.select_one(
             'body > div:nth-child(12) > div > div.p-tel_modal_phone_number > div > div > p'
         )
         tel = tel_elm.get_text() if tel_elm != None else None
-        self.sheet.cell(row=index, column=4, value=tel)  # TEL
+        data_list[3] = tel
+        #self.sheet.cell(row=index, column=4, value=tel)  # TEL
         # table info scraping
         table_col = soup.select(
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.p-shop_content_container.p-shop_content_container_relative > table > tbody > tr > th'
@@ -316,26 +328,35 @@ class ScrapingInfomation(ScrapingURL):
             info = info.replace("\n", "")
             info = info.replace("地図で場所を見るGoogleマップで見る", "")
             table_list[menu] = info
-        self.sheet.cell(row=index, column=5, value=table_list['店舗名'])
+        data_list[4] = table_list['店舗名']
+        #self.sheet.cell(row=index, column=5, value=table_list['店舗名'])
         store_kana_elm = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div > div.p-shop_header_name_container > div > span'
             )
         store_kana = store_kana_elm.get_text() if store_kana_elm != None else None
-        self.sheet.cell(row=index, column=6, value=store_kana)
+        data_list[5] = store_kana
+        #self.sheet.cell(row=index, column=6, value=store_kana)
         all_addresses = table_list['住所']
         pref_obj = re.search('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
         pref = pref_obj.group()
-        self.sheet.cell(row=index, column=8,
-                        value=self.call_jis_code(pref))  # JISコード
-        self.sheet.cell(row=index, column=9, value=pref)  # 都道府県名
+        data_list[7] = self.call_jis_code(pref)
+        #self.sheet.cell(row=index, column=8, value=self.call_jis_code(pref))  # JISコード
+        data_list[8] = pref
+        #self.sheet.cell(row=index, column=9, value=pref)  # 都道府県名
         # 都道府県と市区町村を分離
         muni = re.split('東京都|北海道|(?:京都|大阪)府|.{2,3}県', all_addresses)
+        data_list[9] = muni[1]
+        data_list[10] = all_addresses
+        data_list[11] = url
+        """
         self.sheet.cell(row=index, column=10, value=muni[1])  # 市区町村番地
         self.sheet.cell(row=index, column=11, value=all_addresses)  # フル住所
         self.sheet.cell(row=index, column=12, value=url)  # 店舗URL
+        """
         shop_id_string = re.search(r"shop_\d{0,}", url).group()
         shop_id = re.search(r"\d{1,}", shop_id_string).group()
-        self.sheet.cell(row=index, column=13, value=shop_id)  # shopID
+        data_list[12] = shop_id
+        #self.sheet.cell(row=index, column=13, value=shop_id)  # shopID
         try:
             url_list = re.findall(
                 r"https?://[\w!\?/\+\-_~=;\.,\*&@#\$%\(\)'\[\]]+", table_list['URL'])
@@ -343,26 +364,28 @@ class ScrapingInfomation(ScrapingURL):
             url_list = [None, None, None]
         for i in range(3):
             try:
-                self.sheet.cell(row=index, column=14+i,
-                                value=url_list[i])  # URLその１～３
+                data_list[13+i] = url_list[i]
+                #self.sheet.cell(row=index, column=14+i,value=url_list[i])  # URLその１～３
             except IndexError:
-                self.sheet.cell(row=index, column=14+i, value=None)
+                data_list[13+i] = None
+                #self.sheet.cell(row=index, column=14+i, value=None)
         pankuzu_header = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.layout_media.p-topic_path_container > div.layout_media_wide > div').get_text()
         pankuzu = pankuzu_header.replace('\n', " > ")
-        self.sheet.cell(row=index, column=17,
-                        value=pankuzu.strip(" > "))  # パンくずヘッダー
-        
+        data_list[16] = pankuzu.strip(" > ")
+        #self.sheet.cell(row=index, column=17,value=pankuzu.strip(" > "))  # パンくずヘッダー
         catch_copy_elm = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > p'
             )
         catch_copy = catch_copy_elm.get_text() if catch_copy_elm != None else None
-        self.sheet.cell(row=index, column=18, value=catch_copy)
+        data_list[17] = catch_copy
+        #self.sheet.cell(row=index, column=18, value=catch_copy)
         official = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.p-shop_header_catch_container > div > span')
         official_judge = '●' if official != None else None
-        self.sheet.cell(row=index, column=19, value=official_judge)
-        self.sheet.cell(row=index, column=20, value=None)  # 未確認店舗
+        data_list[18] = official_judge
+        #self.sheet.cell(row=index, column=19, value=official_judge)
+        #self.sheet.cell(row=index, column=20, value=None)  # 未確認店舗
         store_score_tag = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_rating > div > div.rating_stars_num.tooltip > span'
             )
@@ -370,50 +393,68 @@ class ScrapingInfomation(ScrapingURL):
             score = None  # 評価点数
         else:
             score = float(store_score_tag.get_text())
-        self.sheet.cell(row=index, column=21, value=score)
+        data_list[20] = score
+        #self.sheet.cell(row=index, column=21, value=score)
         review_count = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_info > div.p-shop_header_info_review > div > span.icon_wrapper_text > a')
         if review_count in (None, '0'):
             review_count = 0
         else:
             review_count = int(review_count.get_text())
-        self.sheet.cell(row=index, column=22, value=review_count)  # 口コミ数
+        data_list[21] = review_count
+        #self.sheet.cell(row=index, column=22, value=review_count)  # 口コミ数
         photo_tag = soup.select(
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(3) > div.grid.space15.vertical_space15.js_photo_gallery > div > a > img')
         photo_cnt = len(photo_tag)  # 写真枚数
-        self.sheet.cell(row=index, column=23, value=photo_cnt)
+        data_list[22] = photo_cnt
+        #self.sheet.cell(row=index, column=23, value=photo_cnt)
         access_elm = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(1) > div')
         access = access_elm.get_text() if access_elm != None else None
-        self.sheet.cell(row=index, column=24, value=access)  # アクセス
-        
+        data_list[23] = access
+        #self.sheet.cell(row=index, column=24, value=access)  # アクセス
         junle1_elm = soup.select_one('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > a')
         junle1 = junle1_elm.get_text() if junle1_elm != None else None
-        self.sheet.cell(row=index, column=25, value=junle1)  # ジャンル１
-        
+        data_list[24] = junle1
+        #self.sheet.cell(row=index, column=25, value=junle1)  # ジャンル１
         junle2_4 = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_genre > li > span')
         #ジャンル2~4
         for c, junle in enumerate(junle2_4):
             if junle != None:
-                self.sheet.cell(row=index, column=26+c, value=junle.get_text())
+                data_list[25+c] = junle.get_text()
+                #self.sheet.cell(row=index, column=26+c, value=junle.get_text())
         
         
         features = soup.select('body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > ul.p-shop_header_tag_list.tag_group > li')
+        col_list = [
+            '早朝OK',	
+            '日祝OK',
+            '夜間OK',
+            '駐車場有',
+            'ネット予約',	
+            'クーポン有',
+            'カード可',
+            '出張・宅配あり'
+        ]
         for feature in features:
             if feature == None:  # 特徴タグがない時処理を行わない
                 break
             
-            for col in range(29, 36+1): 
-                if self.sheet.cell(row=1, column=col).value in feature.get_text():
-                    self.sheet.cell(row=index, column=29+i, value="●")  # 店舗の特徴
+            for col, col_menu in zip(range(29, 36+1), col_list): 
+                if col_menu in feature.get_text():
+                    data_list[28+i] = "●"
+                    #self.sheet.cell(row=index, column=29+i, value="●")  # 店舗の特徴
                     break  # 見つかったら小ループ抜けて次の特徴へ
         
         #緯度・経度
         time.sleep(5) #API接続の感覚を空ける。
         latlong = self.calcLatLong(all_addresses)
-        self.sheet.cell(row=index, column=37, value=latlong[0])
-        self.sheet.cell(row=index, column=38, value=latlong[1])
+        data_list[36] = latlong[0]
+        data_list[37] = latlong[1]
+        #self.sheet.cell(row=index, column=37, value=latlong[0])
+        #self.sheet.cell(row=index, column=38, value=latlong[1])
 
         moyorieki = None
-        self.sheet.cell(row=index, column=39, value=moyorieki)  # アクセス/最寄り駅
+        data_list[38] = moyorieki
+        #self.sheet.cell(row=index, column=39, value=moyorieki)  # アクセス/最寄り駅
         holiday_d_time_elm = soup.select_one(
             'body > div.l-wrapper > div > div.l-top_contents > div.p-shop_header > div.layout_media.p-shop_header_inner > div.layout_media_wide.p-shop_header_main > div.layout_media.p-shop_header_main_inner > div.layout_media_wide.p-shop_header_main_content > div:nth-child(1) > div > div.p-shop_header_access > div:nth-child(3) > div'
         )
@@ -423,18 +464,36 @@ class ScrapingInfomation(ScrapingURL):
             holiday_d_time = holiday_d_time.replace(" ", "")
         except AttributeError:
             pass
-        self.sheet.cell(row=index, column=40, value=holiday_d_time)  # 営業時間/定休日
+        data_list[39] = holiday_d_time
+        #self.sheet.cell(row=index, column=40, value=holiday_d_time)  # 営業時間/定休日
 
-        for col in range(41, 51+1):
-            menu = self.sheet.cell(row=1, column=col).value
+        menu_list = [
+            '駐車場',
+            'クレジットカード',
+            '座席',
+            '用途',
+            'メニュー',
+            '特徴',
+            'ポイント',
+            'ここがすごい！',
+            'メディア関連',
+            '価格設定',
+            'マルチアクセス'
+        ]
+        for col, menu in zip(range(41, 51+1), menu_list):
+            #menu = self.sheet.cell(row=1, column=col).value
             try:
-                self.sheet.cell(row=index, column=col, value=table_list[menu])
+                data_list[col-1] = table_list[menu]
+                #self.sheet.cell(row=index, column=col, value=table_list[menu])
             except KeyError:
-                self.sheet.cell(row=index, column=col, value=None)
+                data_list[col-1] = None
+                #self.sheet.cell(row=index, column=col, value=None)
         
         introduction_elm = soup.select_one('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.l-shop_content > div:nth-child(2) > div > div > div.p-shop_introduction_content.js_toggle_content > p')
         introduction = introduction_elm.get_text() if introduction_elm != None else None
-        self.sheet.cell(row=index, column=52, value=introduction) #紹介文
+        data_list[51] = introduction
+        #self.sheet.cell(row=index, column=52, value=introduction) #紹介文
+        return data_list
 
     def calcLatLong(self, address:str):
         """
@@ -526,7 +585,88 @@ class ScrapingInfomation(ScrapingURL):
         self.driver = webdriver.Chrome(
             'chromedriver.exe', options=self.options)
         self.wait = WebDriverWait(self.driver, 180)
-    
+
+
+class WriteWorkBook():
+    book = px.Workbook()
+    sheet = book.worksheets[0]
+
+    def __init__(self, path, end_count):
+        self.path = path
+        self.end_count = end_count
+
+    def __init_work_book(self):
+        menu_list = [
+            "エキテン",
+            "新規リスト投入日",
+            "ジャンル",
+            "電話",
+            "店舗名",
+            "店舗名カナ",
+            "料金プラン",
+            "都道府県コード",
+            "都道府県",
+            "市区町村・番地",
+            "住所フル",
+            "店舗URL",
+            "shopID",
+            "URLその1",
+            "URLその2",
+            "URLその3",
+            "パンくず",
+            "キャッチ",
+            "店舗公式",
+            "未確認店舗",
+            "評価点数",
+            "口コミ数",
+            "写真枚数",
+            "アクセス",
+            "ジャンル1",
+            "ジャンル2",
+            "ジャンル3",
+            "ジャンル4",
+            "早朝OK",
+            "日祝OK",
+            "夜間OK",
+            "駐車場有",
+            "ネット予約",
+            "クーポン有",
+            "カード可",
+            "出張・宅配あり",
+            "緯度",
+            "経度",
+            "アクセス／最寄駅",
+            "営業時間／定休日",
+            "駐車場",
+            "クレジットカード",
+            "座席",
+            "用途",
+            "メニュー",
+            "特徴",
+            "ポイント",
+            "ここがすごい！",
+            "メディア関連",
+            "価格設定",
+            "マルチアクセス",
+            "紹介文"
+        ]
+        for col, menu in enumerate(menu_list):
+            self.sheet.cell(row=1, column=col+1, value=menu)
+        self.book.save(self.path)
+
+    def write_data(self, data_list:list, index:int):
+        """
+        1プロセスあたりのスクレイピングデータを書き込む。\n
+        data_list = [A,B,C, ....]
+        """
+        for col, data in zip(range(1, 52+1), data_list):
+            try:
+                self.sheet.cell(row=index, column=col, value=data)
+            except IndexError:
+                return False
+        return True 
+
+
 class Implementation():
     def __init__(self, path, area_list, junle):
         self.area_list = area_list
