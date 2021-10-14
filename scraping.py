@@ -181,7 +181,7 @@ class ScrapingURL(object):
         for url in url_pre_list:
             if url not in self.url_list:
                 self.url_list.append(url)
-                self.row_counter.value = len(self.url_list)
+                self.row_counter.value += 1
            
            
     def extraction_url(self, selector, pre_url):
@@ -205,6 +205,7 @@ class ScrapingInfomation(ScrapingURL):
         super(ScrapingInfomation, self).__init__(path, row_counter, url_list_data)
         #self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         self.info_datas = info_datas #共有メモリ上の結果格納リスト
+        #self.latlngs = latlngs #共有メモリ上の緯度経度格納リスト[[lat, lng], ....,]
         self.end_count = end_count #共有メモリ上のカウンタ変数
 
     
@@ -232,7 +233,21 @@ class ScrapingInfomation(ScrapingURL):
                 driver.get(url)
                 
             html = driver.page_source
+            #print(html)
             data_list:list = self.__extraction(html, url)
+            """
+            #緯度経度の取得(iframeのため)
+            try:
+                iframe = driver.find_element_by_tag_name('iframe')
+                driver.switch_to.frame(iframe)
+                latlng_elm = driver.find_element_by_css_selector('#mapDiv > div:nth-child(1) > div > div:nth-child(5) > div > div > div > div > div.place-desc-large > div.place-name')
+                
+                data_list[36] = latlong[0]
+                data_list[37] = latlong[1]
+            except NoSuchElementException:
+                data_list[36] = None
+                data_list[37] = None
+            """
             self.info_datas.append(data_list) #結果を共有メモリ上のリストへ格納
             self.end_count.value += 1
             load_counter += 1
@@ -403,13 +418,14 @@ class ScrapingInfomation(ScrapingURL):
                     break  # 見つかったら小ループ抜けて次の特徴へ
         
         #緯度・経度
-        time.sleep(5) #API接続の感覚を空ける。
+        """
+        #time.sleep() #API接続の感覚を空ける。
         latlong = self.calcLatLong(all_addresses)
         data_list[36] = latlong[0]
         data_list[37] = latlong[1]
         #self.sheet.cell(row=index, column=37, value=latlong[0])
         #self.sheet.cell(row=index, column=38, value=latlong[1])
-
+        """
         moyorieki = None
         data_list[38] = moyorieki
         #self.sheet.cell(row=index, column=39, value=moyorieki)  # アクセス/最寄り駅
@@ -633,6 +649,7 @@ class Implementation():
         self.junle = junle
         self.path = path
         self.manager = Manager()
+        self.latlngs = self.manager.list()
         self.max_row_counter = self.manager.Value('i', 0)
         self.scrap_url_list = self.manager.list()
         self.end_count = self.manager.Value('i', 0)
@@ -697,7 +714,7 @@ class Implementation():
             self.p.terminate()
         except:
             pass
-        
+
     def run(self):
         #p = Pool()
         future = self.p.apply_async(self.search.search, args=([self.area_list]))
