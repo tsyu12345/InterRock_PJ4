@@ -1,8 +1,8 @@
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, popup, popup_error
 import sys
-from scrap import Scrap
-from multiprocessing import Pool
+from multiprocessing import Pool, freeze_support
+from scraping import Implementation
 import threading as th
 class AreaSelect:
     def lay_out(self):
@@ -86,93 +86,32 @@ def obj_frame(lay_out_data):
     return L
 
 class Job():
-    def __init__(self, path, junle, area_list):
+    def __init__(self, path, area_list, junle):
         self.path = path
-        self.junle = junle
         self.area_list = area_list
-        self.scraping = Scrap(path)
-        self.scraping.book_init()
+        self.junle = junle
+        self.scrap = Implementation(self.path, self.area_list, self.junle)
         self.url_scrap_flg = False
         self.info_scrap_flg = False
+        self.scrap_cnt = 0 #info_scrap count
+        self.scrap_sum = 1 #sum count of scraiping
+        self.check_flg = False
         self.end_flg = False
-        self.save_flg = False
-        self.sum_cnt = 1#抽出の合計
-        self.scrap_cnt = 0#スクレイピング件数
-
-    def __url_search(self):
-        #URL scraping
-        self.url_scrap_flg = True
-        for area in self.area_list:
-            self.scraping.search(area)#指定エリアの店舗URLのサーチ
+        self.detati_flg = False
+        self.exception_flg = False
         
-    def scrap(self):
-        if self.junle == '全ジャンル抽出':
-            self.url_scrap_flg = True
-            #p = Pool()
-            #thread = p.apply_async(self.__url_search)
-            thread = th.Thread(target=self.__url_search, daemon=True)
-        thread.start()
-
-        #info scraping 
-        scraped_row = 2 #初期値2行目
-        readyed_row = 1 #初期値1行目
+    def run(self):
+        """
+        scraping.py呼び出しメソッド
+        """    
         self.info_scrap_flg = True
-        while self.info_scrap_flg:
-            if thread.is_alive() != True and self.url_scrap_flg == True:
-                #url searchの終了
-                print("URL search end")
-                self.url_scrap_flg = False
-            if self.url_scrap_flg == False and scraped_row == readyed_row:
-                #全終了
-                self.info_scrap_flg = False
-                ("all scrap process end")
-                break 
-                
-            for row in range(scraped_row, readyed_row):
-                if self.scraping.sheet.cell(row=row, column=12).value != None:#URL抽出済行
-                    if row % 50 == 0:
-                        self.scraping.restart()
-                    print("scrap:" + str(row))
-                    self.scraping.info_scrap(self.scraping.sheet.cell(row=row, column=12).value, row)
-                    self.scrap_cnt += 1
-                elif self.scraping.sheet.cell(row=row, column=12).value == None: #未検索行
-                    scraped_row = row
-                    print("for break")
-                    break
-            scraped_row = readyed_row+1
-            readyed_row = self.scraping.sheet_row
-            self.sum_cnt = readyed_row
-            #print("row renew")
-                
-        """
-        saving data file and quit webdriver
-        """
+        self.scrap.run()
         self.info_scrap_flg = False
-        self.save_flg = True
-        self.scraping.book.save(self.path)
-        self.scraping.driver.quit()
-        self.save_flg = False
         self.end_flg = True
-        
-        
-        """
-        self.url_scrap_flg = False
-        self.sum_cnt = self.scraping.sheet.max_row
-        self.info_scrap_flg = True
-        for r in range(2, self.scraping.sheet.max_row+1):
-            if r % 50 == 0:
-                self.scraping.restart()
-            self.scraping.info_scrap(self.scraping.sheet.cell(row=r, column=12).value, r)
-            self.scrap_cnt += 1
-        """
-        
 
-    def cancel(self):
-        self.scraping.book.save(self.path)
-        self.scraping.driver.quit()
-        self.scraping.sub_driver.quit()
 
 if __name__ == "__main__":
+    freeze_support()
     gui.theme('BluePurple')
     width = 700
     height = 300
@@ -207,23 +146,28 @@ if __name__ == "__main__":
         if event == '抽出実行':
             pref_list = value['pref_name'].split(",")
             print(pref_list)
-            job = Job(value['path'], value['Big_junle'], pref_list)
-            th1 = th.Thread(target=job.scrap, daemon=True)
+            job = Job(value['path'], pref_list, value['Big_junle'])
+            th1 = th.Thread(target=job.run, daemon=True)
             th1.start()
             running = True
             while running:
+                counters = job.scrap.call_counter_value()
+                done_count = counters[0]
+                sum_count = counters[1]
+                if done_count >= sum_count:
+                    done_count -= 1
+                if sum_count == 0:
+                    sum_count = 1
+
                 if job.info_scrap_flg:
-                    run = gui.OneLineProgressMeter("処理中です...", job.scrap_cnt, job.scraping.sheet_row, 'prog', "店舗情報を抽出中です。\nブラウザが複数回再起動します。")
+                    run = gui.OneLineProgressMeter("処理中です...", done_count, sum_count, 'prg',"店舗情報を抽出中です。\nブラウザが複数回再起動します。")
                     if run == False and job.info_scrap_flg:
                         gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="中断処理中...")
-                        job.cancel()
+                        job.scrap.cancel()
                         #pool.terminate()
                         detati = True
                         running = False
                         break
-                
-                if job.save_flg:
-                    gui.popup_animated('icon_loader_a_bb_01_s1.gif', message="最終処理中...")
                 
                 if job.end_flg:
                     running = False
@@ -244,7 +188,3 @@ if __name__ == "__main__":
     
     win.close()
     sys.exit()
-
-
-
-
