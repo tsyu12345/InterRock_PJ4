@@ -182,8 +182,7 @@ class ScrapingURL(object):
             if url not in self.url_list:
                 self.url_list.append(url)
                 self.row_counter.value += 1
-           
-           
+
     def extraction_url(self, selector, pre_url):
         html = self.sub_driver.page_source
         soup = bs(html, 'lxml')
@@ -228,8 +227,11 @@ class ScrapingInfomation(ScrapingURL):
             try:
                 driver.get(url)
             except TimeoutException:
-                self.restart()
+                driver.delete_all_cookies()
+                driver.quit()
                 time.sleep(30)
+                driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+                wait = WebDriverWait(driver, 180)
                 driver.get(url)
                 
             html = driver.page_source
@@ -301,6 +303,7 @@ class ScrapingInfomation(ScrapingURL):
             info = info.replace("\n", "")
             info = info.replace("地図で場所を見るGoogleマップで見る", "")
             table_list[menu] = info
+        #key ERROR at 10.16↓
         data_list[4] = table_list['店舗名']
         #self.sheet.cell(row=index, column=5, value=table_list['店舗名'])
         store_kana_elm = soup.select_one(
@@ -549,18 +552,6 @@ class ScrapingInfomation(ScrapingURL):
         }
         code = pref_jiscode[key]
         return code 
-
-    
-    def restart(self):
-        """
-        スクレイピング用ドライバおよびブラウザの再起動。
-        """
-        self.driver.delete_all_cookies()
-        self.driver.quit()
-        time.sleep(3)
-        self.driver = webdriver.Chrome(
-            'chromedriver.exe', options=self.options)
-        self.wait = WebDriverWait(self.driver, 180)
 
 
 class WriteWorkBook():
