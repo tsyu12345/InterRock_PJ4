@@ -7,4 +7,6 @@ chromedriver.exe
 chrome-win
 *.csv
 *.png
-venv
+.venv
+*.xlsx
+run_test.xlsx

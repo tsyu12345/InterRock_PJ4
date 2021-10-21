@@ -129,18 +129,19 @@ class Scrap():
         self.sub_driver.get('https://www.ekiten.jp/')
         # wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#select_form_st_com")))
         # Max wait time(second):180s
-        self.wait_sub_driver = WebDriverWait(self.sub_driver, 180)
-        self.wait_sub_driver.until(EC.visibility_of_all_elements_located)
+        #self.wait_sub_driver = WebDriverWait(self.sub_driver, 180)
+        #self.wait_sub_driver.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'select_form_st_com')))
         sr_box = self.sub_driver.find_element_by_id('select_form_st_com')
         sr_box.send_keys(area)
         sr_btn = self.sub_driver.find_element_by_css_selector(
             '#js_random_top > div > div > div > form > div > input')
         sr_btn.click()
-        self.wait_sub_driver.until(EC.visibility_of_all_elements_located)
+        print("clicked !")
+        #self.wait_sub_driver.until(EC.visibility_of_all_elements_located)
         city_list = self.extraction_url(
             'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a', 'https://www.ekiten.jp')
-        # print(city_list)
-        result:str = self.sub_driver.find_element_by_css_selector(
+        print(city_list)
+        result = self.sub_driver.find_element_by_css_selector(
             'body > div.l-wrapper > div > div.l-contents_wrapper > main > div.search_result_heading.u-mb10 > div.search_result_heading_sub > dl > div > dd').text
         result = result.replace(",", "")
         result = result.replace("件", "")
