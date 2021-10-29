@@ -9,5 +9,16 @@ import scrapy
 class EkitenscrapyItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
-    store_link = scrapy.Field()
+    """
+    結果出力用Item、本スクレイピング用
+    """
+    store_link = scrapy.Field() #scrapingする掲載URL
+
+class StoreUrlItem(scrapy.Item):
+    """
+    ページ遷移用URL格納Item、preスクレイピング用
+    """
+    municipalities = scrapy.Field()
+    junle = scrapy.Field()
+
 
