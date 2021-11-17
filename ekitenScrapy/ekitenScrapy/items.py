@@ -14,11 +14,5 @@ class EkitenscrapyItem(scrapy.Item):
     """
     store_link = scrapy.Field() #scrapingする掲載URL
 
-class StoreUrlItem(scrapy.Item):
-    """
-    ページ遷移用URL格納Item、preスクレイピング用
-    """
-    municipalities = scrapy.Field()
-    junle = scrapy.Field()
 
 
