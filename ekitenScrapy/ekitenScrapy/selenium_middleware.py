@@ -3,35 +3,38 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from bs4 import BeautifulSoup as Soup
+from JisCode import JisCode
+import os
+import sys
 
-def js_execute(url):
-    options = webdriver.ChromeOptions()
-    options.add_argument("start-maximized")
-    options.add_argument("enable-automation")
-    #options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-infobars")
-    options.add_argument('--disable-extensions')
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-browser-side-navigation")
-    options.add_argument("--disable-gpu")
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument('--ignore-ssl-errors')
-    prefs = {"profile.default_content_setting_values.notifications": 2}
-    options.add_experimental_option("prefs", prefs)
-    browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
-    options.binary_location = browser_path
-    driver = webdriver.Chrome(executable_path='C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe', options=options)
-    driver.get(url)
-    print(driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a'))
+def resource_path(relative_path):
+    """
+    バイナリフィルのパスを提供
+    """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(__file__)
+    return os.path.join(base_path, relative_path)
+
+class SeleniumMiddleware(object):
+    """Summary Line:\n
+    遷移先のページリンクを取得するときに、JavaScriptで動的に生成される場合に利用する。\n
+    各メソッドを実行し、それぞれのリンクを取得する。\n
+    ＜呼び出し可能メソッド一覧＞※各メソッドの引数は、それぞれのメソッドの説明を参照。\n
+    ・city_list(pref_name) -> 市区町村URLのリスト\n
+    ・準備中\n
+    ・準備中\n
     
-class ScrapyMiddleware(object):
+    """
     
     def __init__(self):
+        self.driver_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe'
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        #self.options.add_argument("--headless")
+        self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -44,12 +47,63 @@ class ScrapyMiddleware(object):
         self.options.add_experimental_option("prefs", prefs)
         browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
-        self.driver = webdriver.Chrome(executable_path='C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe', options=self.options)
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
     
-    def process_request(self, request, spider):
-        self.driver.get(request.url)
-        print("Hello")
-        return HtmlResponse(self.driver.current_url, body=self.driver.page_source, encoding='utf-8', request=request)
+    def __callJisCode(self, pref_name) -> int:
+        """Sumary Line.\n
+        指定都道府県の名前から、都道府県コードを取得する。\n
+        Args:\n
+            pref_name (str):取得する都道府県の名前\n
+        Returns:\n
+            int:都道府県コード\n
+        """
         
+        jis_code = JisCode(pref_name)
+        return jis_code
+        
+    def __CityLinkExtraction(self, pref_code:int) -> list:
+        """Summary Line.\n
+        指定都道府県で、市区町村レベルのリンクを取得する際の処理コード。\n
+        Args:\n
+            pref_code (int):取得する市区町村の都道府県コード\n
+        Returns:\n
+            list:市区町村レベルのリンクのリスト\n
+        """
+        
+        url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
+        wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
+        self.driver.get(url)
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
+        link_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a')
+        print(link_tags)
+        urls = []
+        for tag in link_tags:
+            urls.append(tag.get_attribute('href'))
+        return urls
+        
+    def city_list(self, pref_name:str) -> list:
+        """Summary Line.\n
+        指定都道府県のリンクを取得し、そのリストを返却する。\n
+        メソッド__CityLinkExtraction()の呼び出し処理。\n
+        
+        Args:\n
+            pref_name (str):取得する市区町村の都道府県名\n
+        Returns:\n
+            list:市区町村レベルのリンクのリスト\n
+        """
+        jis_code = self.__callJisCode(pref_name)
+        url_list = self.__CityLinkExtraction(jis_code)
+        return url_list
     
+    def quitDriver(self) -> None:
+        """Summary Line.\n
+        ブラウザを終了する。\n
+        """
+        self.driver.quit()
 
+if __name__ == '__main__':
+    #Test call
+    selenium_middle = SeleniumMiddleware()
+    result = selenium_middle.city_list('徳島県')
+    print(result)
+    selenium_middle.quitDriver()

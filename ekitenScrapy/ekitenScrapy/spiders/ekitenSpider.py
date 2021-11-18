@@ -19,7 +19,7 @@ class EkitenspiderSpider(scrapy.Spider):
         },
     }
     """
-
+        
         
     def parse(self, response):
        
