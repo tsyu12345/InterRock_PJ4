@@ -1,14 +1,13 @@
-<html><head></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">User-agent: Slurp
-Crawl-delay: 1
-
-User-agent: Y!J-BRY/YATSH crawler
-Crawl-delay: 300
-
-User-agent: Y!J-BRZ/YATSHA crawler
-Crawl-delay: 300
-
-User-agent: *
+<html><head></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">User-agent: *
+Disallow: /qr_code/
 Disallow: /check/adclick.php
+Disallow: /mypage/doInsertUserToken.php
+Disallow: /mypage/inquiry_shop.php
+Disallow: /iphone/mypage/inquiry_shop.php
+Disallow: /shopnews/
+Disallow: /mypage/logout.php
+Disallow: /iphone/logout.php
+Disallow: /api/shopSearch/station/links
 Disallow: /api/recommendedShopNews/count/
 
 User-agent: bingbot

@@ -45,12 +45,11 @@ class ScrapyMiddleware(object):
         browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
         self.driver = webdriver.Chrome(executable_path='C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe', options=self.options)
-        
-
+    
     def process_request(self, request, spider):
         self.driver.get(request.url)
         print("Hello")
         return HtmlResponse(self.driver.current_url, body=self.driver.page_source, encoding='utf-8', request=request)
-    
+        
     
 

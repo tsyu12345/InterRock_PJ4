@@ -50,9 +50,9 @@ DOWNLOAD_DELAY = 3
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-DOWNLOADER_MIDDLEWARES = {
-    'ekitenScrapy.selenium_middleware.ScrapyMiddleware': 543,
-}
+#DOWNLOADER_MIDDLEWARES = {
+#    'ekitenScrapy.selenium_middleware.ScrapyMiddleware': 543,
+#}
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
