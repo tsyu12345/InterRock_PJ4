@@ -10,20 +10,16 @@ from ..selenium_middleware import *
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    #start_urls = ['https://www.ekiten.jp/area/a_prefecture36/'] #一旦試験的に、徳島のみ。
+    start_urls = ['https://www.ekiten.jp/area/a_prefecture36/'] #一旦試験的に、徳島のみ。
     
-
+    """
     custom_settings = {
         "DOWNLOAD_MIDDLEWARE": {
             "ekitenScrapy.selenium_middleware.ScrapyMiddleware"
         },
     }
+    """
 
-    def openStartPageBySelenium(self):
-        url = 'https://www.ekiten.jp/area/a_prefecture36/'
-        print("HELLOOOOOOOOO")
-        js_execute(url)
-        yield scrapy.Request(url, callback=self.parse)
         
     def parse(self, response):
         print("OHHHHHHHHHHHHHHHHHH")
