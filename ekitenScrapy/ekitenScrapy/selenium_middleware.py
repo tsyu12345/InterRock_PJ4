@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup as Soup
 from JisCode import JisCode
+import requests
 import os
 import sys
 
@@ -95,6 +96,55 @@ class SeleniumMiddleware(object):
         url_list = self.__CityLinkExtraction(jis_code)
         return url_list
     
+    def big_junle_list(self, city_url_list:list) -> list:
+        """[summary]\n
+
+        Args:\n
+            city_url ([str]): 取得したい市区町村のURLのリスト\n
+
+        Returns:\n
+            list: 市区町村ごとの取得した大ジャンルごとのURL２次元リスト[[url, url...], [some,....]]\n
+        """
+        result_list = self.__big_junle_link_extraction(city_url_list)
+        return result_list
+            
+
+    def __big_junle_link_extraction(self, city_list:list) -> list:
+        """[summary]\n
+        市区町村の大ジャンルリンクを抽出し、そのリンクのリストを返す処理。\n
+        Args:\n
+            url (list): 市区町村のURLリスト\n
+        Returns:\n
+            list: 市区町村ごとの大ジャンルリンクのリスト\n
+        """
+        url_list = []
+        for url in city_list:
+            print(url)
+            self.driver.get(url)
+            wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
+            wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
+            a_tags = self.driver.find_elements_by_css_selector('div.l-side_contents_search_tooltip_inner > div > ul.l-side_contents_search_images > li > a')
+            add_links = [] 
+            for a in a_tags:
+                add_links.append(a.get_attribute('href'))
+            url_list.append(add_links)
+        return url_list
+
+    
+    def __small_junle_link_extraction(self, big_junle_url_list:list) -> list:
+        """[summary]\n
+        大ジャンルの中小ジャンルリンクを抽出し、そのリンクのリストを返す処理。\n
+        Args:\n
+            url (list): 大ジャンルのURLリスト\n
+        Returns:\n
+            list: 大ジャンルごとの中小ジャンルリンクのリスト\n
+        """
+        result_list = []
+        #for url in big_junle_url_list:
+ 
+        
+    
+    
     def quitDriver(self) -> None:
         """Summary Line.\n
         ブラウザを終了する。\n
@@ -104,6 +154,9 @@ class SeleniumMiddleware(object):
 if __name__ == '__main__':
     #Test call
     selenium_middle = SeleniumMiddleware()
-    result = selenium_middle.city_list('徳島県')
-    print(result)
+    result_city = selenium_middle.city_list('徳島県')
+    print(result_city)
+    result_big_junle = selenium_middle.big_junle_list(result_city)
+    print(result_big_junle)
     selenium_middle.quitDriver()
+    
