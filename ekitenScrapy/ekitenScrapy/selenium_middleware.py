@@ -25,7 +25,7 @@ class SeleniumMiddleware(object):
     各メソッドを実行し、それぞれのリンクを取得する。\n
     ＜呼び出し可能メソッド一覧＞※各メソッドの引数は、それぞれのメソッドの説明を参照。\n
     ・city_list(pref_name) -> 市区町村URLのリスト\n
-    ・準備中\n
+    ・big_junle_list(city_url_list) -> 市区町村ごとの大ジャンルURLを格納した２次元リスト\n
     ・準備中\n
     
     """
