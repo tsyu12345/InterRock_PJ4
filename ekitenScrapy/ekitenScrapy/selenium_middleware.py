@@ -131,20 +131,39 @@ class SeleniumMiddleware(object):
         return url_list
 
     
-    def __small_junle_link_extraction(self, big_junle_url_list:list) -> list:
+    def small_junle_list(self, big_junle_list:list) -> list:
         """[summary]\n
-        大ジャンルの中小ジャンルリンクを抽出し、そのリンクのリストを返す処理。\n
+        大ジャンルごとのリンクを参照し、その遷移先の小ジャンルのリンクを返却する。
         Args:\n
-            url (list): 大ジャンルのURLリスト\n
+            big_junle_list(list):大ジャンルのURLリスト\n
         Returns:\n
-            list: 大ジャンルごとの中小ジャンルリンクのリスト\n
+            list: 小ジャンルごとのURLリスト\n
         """
-        result_list = []
-        #for url in big_junle_url_list:
- 
+        url_list = []
+        for big_junle_url_list in big_junle_list:
+            for url in big_junle_url_list:
+                url_list.append(self.__small_junle_link_extraction(url))
+        return url_list
         
     
-    
+    def __small_junle_link_extraction(self, url:str) -> list:
+        """[summary]\n
+        大ジャンルリンク先の小ジャンルリンクを抽出し、そのリンクのリストを返す処理。\n
+        Args:\n
+            url (str): 大ジャンルのURL\n
+        Returns:\n
+            list: 大ジャンルごとの中小ジャンルリンクリスト\n
+        """
+        result_list = []
+        self.driver.get(url)
+        wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
+        a_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
+        for a in a_tags:
+            result_list.append(a.get_attribute('href'))
+        #for url in big_junle_url_list:
+        return result_list
+ 
     def quitDriver(self) -> None:
         """Summary Line.\n
         ブラウザを終了する。\n
@@ -158,5 +177,7 @@ if __name__ == '__main__':
     print(result_city)
     result_big_junle = selenium_middle.big_junle_list(result_city)
     print(result_big_junle)
+    result_small_junle = selenium_middle.small_junle_list(result_big_junle)
+    print(result_small_junle)
     selenium_middle.quitDriver()
     
