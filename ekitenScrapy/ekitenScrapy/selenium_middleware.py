@@ -19,6 +19,17 @@ def resource_path(relative_path):
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
+def list_split(n:int, l:list) -> tuple:
+    """Summary Line:\n
+    リストを指定数に分割し、そのタプルを返却する。
+    Args:\n
+        n (int): 分割数\n
+        l (list): 分割対象のリスト\n
+    Returns:\n
+        tuple: 分割されたリストを格納したタプル\n
+    """
+    return tuple([l[i:i + n] for i in range(0, len(l), n)])
+    
 class SeleniumMiddleware(object):
     """Summary Line:\n
     遷移先のページリンクを取得するときに、JavaScriptで動的に生成される場合に利用する。\n
@@ -171,6 +182,10 @@ class SeleniumMiddleware(object):
         self.driver.quit()
 
 if __name__ == '__main__':
+    list1 = ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県', '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県', '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県', '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県', '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県']
+    newlist = list_split(3, list1)
+    print(newlist)
+"""
     #Test call
     selenium_middle = SeleniumMiddleware()
     result_city = selenium_middle.city_list('徳島県')
@@ -180,4 +195,4 @@ if __name__ == '__main__':
     result_small_junle = selenium_middle.small_junle_list(result_big_junle)
     print(result_small_junle)
     selenium_middle.quitDriver()
-    
+""" 
