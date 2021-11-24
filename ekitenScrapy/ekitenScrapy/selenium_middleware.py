@@ -1,13 +1,22 @@
-from scrapy.http import HtmlResponse
+# -*- coding: utf-8 -*-
+
+from selenium.webdriver.chrome import options
+#
+# from scrapy.http import HtmlResponse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup as Soup
 from JisCode import JisCode
+from multiprocessing import Pool, Manager
 import requests
 import os
 import sys
+
+
+
+#Local finctions here
 
 def resource_path(relative_path):
     """
@@ -19,17 +28,23 @@ def resource_path(relative_path):
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
-def list_split(n:int, l:list) -> tuple:
+def list_split(n:int, l:list) -> list:
     """Summary Line:\n
     リストを指定数に分割し、そのタプルを返却する。
     Args:\n
         n (int): 分割数\n
         l (list): 分割対象のリスト\n
     Returns:\n
-        tuple: 分割されたリストを格納したタプル\n
+        list: 分割されたリスト要素を格納したlist\n
     """
-    return tuple([l[i:i + n] for i in range(0, len(l), n)])
+    result = []
+    for i in range(0, len(l), n):
+        add = l[i:i + n]
+        result.append(add)
+    return result
+        
     
+
 class SeleniumMiddleware(object):
     """Summary Line:\n
     遷移先のページリンクを取得するときに、JavaScriptで動的に生成される場合に利用する。\n
@@ -141,21 +156,27 @@ class SeleniumMiddleware(object):
             url_list.append(add_links)
         return url_list
 
-    
     def small_junle_list(self, big_junle_list:list) -> list:
         """[summary]\n
-        大ジャンルごとのリンクを参照し、その遷移先の小ジャンルのリンクを返却する。
+        大ジャンルごとのリンクを参照し、その遷移先の小ジャンルのリンクを返却する。\n
         Args:\n
             big_junle_list(list):大ジャンルのURLリスト\n
         Returns:\n
             list: 小ジャンルごとのURLリスト\n
         """
-        url_list = []
-        for big_junle_url_list in big_junle_list:
-            for url in big_junle_url_list:
-                url_list.append(self.__small_junle_link_extraction(url))
-        return url_list
-        
+        maneger = Manager()
+        url_list = maneger.list()
+        splitedList = list_split(4, big_junle_list)
+        print(splitedList)
+        print(len(splitedList))
+        p = Pool(4)
+        for splitElm in splitedList:
+            for url_list in splitElm:
+                for url in url_list:
+                    result1 = p.apply_async(self.__small_junle_link_extraction, args=(url))
+
+    def 
+    
     
     def __small_junle_link_extraction(self, url:str) -> list:
         """[summary]\n
@@ -166,10 +187,12 @@ class SeleniumMiddleware(object):
             list: 大ジャンルごとの中小ジャンルリンクリスト\n
         """
         result_list = []
-        self.driver.get(url)
-        wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
+        driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        driver.get(url)
+        
+        wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
-        a_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
+        a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
         for a in a_tags:
             result_list.append(a.get_attribute('href'))
         #for url in big_junle_url_list:
@@ -182,10 +205,19 @@ class SeleniumMiddleware(object):
         self.driver.quit()
 
 if __name__ == '__main__':
-    list1 = ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県', '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県', '新潟県', '富山県', '石川県', '福井県', '山梨県', '長野県', '岐阜県', '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府', '兵庫県', '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県', '山口県', '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県']
+    
+    """
+    list1 = [
+        ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県'], 
+        ['福島県', '茨城県', '栃木県', '群馬県', '埼玉県'], 
+        ['千葉県', '東京都', '神奈川県', '新潟県', '富山県', '石川県', '福井県',], 
+        ['山梨県', '長野県', '岐阜県', '静岡県', '愛知県', '三重県', '滋賀県', '京都府', '大阪府'], 
+        ['兵庫県', '奈良県', '和歌山県', '鳥取県', '島根県', '岡山県', '広島県'], 
+        ['山口県', '徳島県', '香川県', '愛媛県', '高知県', '福岡県', '佐賀県', '長崎県', '熊本県', '大分県', '宮崎県', '鹿児島県', '沖縄県']
+        ]
     newlist = list_split(3, list1)
     print(newlist)
-"""
+    """
     #Test call
     selenium_middle = SeleniumMiddleware()
     result_city = selenium_middle.city_list('徳島県')
@@ -193,6 +225,5 @@ if __name__ == '__main__':
     result_big_junle = selenium_middle.big_junle_list(result_city)
     print(result_big_junle)
     result_small_junle = selenium_middle.small_junle_list(result_big_junle)
-    print(result_small_junle)
+    #print(result_small_junle)
     selenium_middle.quitDriver()
-""" 
