@@ -1,3 +1,12 @@
-list1 = [1,2,3,4,5,6,]
-list2 = [1,2,3,4,5,]
-print(3 in list1)
+from multiprocessing import Pool 
+import time 
+
+def process(x):
+    print("process" + str(x) + "started")
+    time.sleep(x)
+    print("process end")
+
+if __name__ == "__main__":
+    with Pool(4) as p:
+        p.map(process, [1,2,3,4])
+    print("main end")

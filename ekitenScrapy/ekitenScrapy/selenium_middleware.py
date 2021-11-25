@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+
 
 from selenium.webdriver.chrome import options
 #
@@ -9,7 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup as Soup
 from JisCode import JisCode
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool, Manager, freeze_support
 import requests
 import os
 import sys
@@ -28,6 +28,62 @@ def resource_path(relative_path):
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
+def test_process(url_list):
+    """Summary Line:\n
+    テスト用関数
+    """
+    driver_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe'
+    options = webdriver.ChromeOptions()
+    options.add_argument("start-maximized")
+    options.add_argument("enable-automation")
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-infobars")
+    options.add_argument('--disable-extensions')
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-browser-side-navigation")
+    options.add_argument("--disable-gpu")
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--ignore-ssl-errors')
+    prefs = {"profile.default_content_setting_values.notifications": 2}
+    options.add_experimental_option("prefs", prefs)
+    browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
+    options.binary_location = browser_path
+    result_list = []
+    driver = webdriver.Chrome(executable_path=driver_path, options=options)
+    for url in url_list:
+        driver.get(url)
+        
+        wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
+        a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
+        for a in a_tags:
+            result_list.append(a.get_attribute('href'))
+        #for url in big_junle_url_list:
+    driver.quit()
+    return result_list
+
+
+def process_join(apply_results: list):
+    """Summary Line:\n
+    Pool.apply_asyncで実行する関数の終了を待機する
+    Args:\n
+        apply_results (list): Pool.apply_asyncで返却されたリスト\n
+    Returns:\n
+        list: Pool.apply_asyncの実行結果、返却値\n
+    """
+    running = [False, False, False, False]
+    return_list = []
+    
+    while True:
+        for i, result in enumerate(apply_results):
+            if result.ready():
+                return_list.append(result.get())
+                running[i] = True
+        if False not in running:
+            break
+    return return_list
+                
 def list_split(n:int, l:list) -> list:
     """Summary Line:\n
     リストを指定数に分割し、そのタプルを返却する。
@@ -156,27 +212,57 @@ class SeleniumMiddleware(object):
             url_list.append(add_links)
         return url_list
 
-    def small_junle_list(self, big_junle_list:list) -> list:
+    def small_junle_list(self, big_junle_list:list, process_count:int) -> list:
         """[summary]\n
         大ジャンルごとのリンクを参照し、その遷移先の小ジャンルのリンクを返却する。\n
         Args:\n
             big_junle_list(list):大ジャンルのURLリスト\n
+            process_count(int):並列処理を行うブラウザの個数（推奨：１～４まで）\n
         Returns:\n
             list: 小ジャンルごとのURLリスト\n
         """
         maneger = Manager()
         url_list = maneger.list()
-        splitedList = list_split(4, big_junle_list)
+        splitedList = list_split(process_count, big_junle_list)
         print(splitedList)
         print(len(splitedList))
-        p = Pool(4)
+        #p = Pool(process_count)
+        result_url_list = []
+        async_results = []
         for splitElm in splitedList:
             for url_list in splitElm:
-                for url in url_list:
-                    result1 = p.apply_async(self.__small_junle_link_extraction, args=(url))
-
-    def 
+                print(url_list)
+                p = Pool(process_count)
+                async_result = p.apply_async(test_process, args=(url_list,))
+                async_results.append(async_result)
+            
+            result = process_join(async_results)
+            result_url_list.append(result)
+        print(result_url_list)
+                
+        
+                
     
+    def __LittleGenreListCalling(self, url_list:list) -> list:
+        """Summary Line.\n
+        小ジャンルごとのリンクを取得し、そのリストを返却する。\n
+        Args:url_list(list<-Multiprocess.Maneger.list):大ジャンルの遷移先のURLリスト\n
+        Returns:小ジャンルのリスト\n
+        """
+        result = []
+        print("hello")
+        #for url in url_list:
+            #driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+            #driver.get(url)
+            
+            #wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
+            #wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
+            #a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
+            #for a in a_tags:
+                #result.append(a.get_attribute('href'))
+            #add = self.__small_junle_link_extraction(url)
+            #result.append(add)
+        #return result
     
     def __small_junle_link_extraction(self, url:str) -> list:
         """[summary]\n
@@ -205,7 +291,7 @@ class SeleniumMiddleware(object):
         self.driver.quit()
 
 if __name__ == '__main__':
-    
+    freeze_support()
     """
     list1 = [
         ['北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県'], 
@@ -224,6 +310,6 @@ if __name__ == '__main__':
     print(result_city)
     result_big_junle = selenium_middle.big_junle_list(result_city)
     print(result_big_junle)
-    result_small_junle = selenium_middle.small_junle_list(result_big_junle)
+    result_small_junle = selenium_middle.small_junle_list(result_big_junle, 4)
     #print(result_small_junle)
     selenium_middle.quitDriver()
