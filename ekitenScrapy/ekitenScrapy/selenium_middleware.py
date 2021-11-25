@@ -1,7 +1,7 @@
 
 
 from selenium.webdriver.chrome import options
-#
+from abc import ABCMeta, abstractmethod
 # from scrapy.http import HtmlResponse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -101,7 +101,7 @@ def list_split(n:int, l:list) -> list:
         
     
 
-class SeleniumMiddleware(object):
+class SeleniumMiddleware(object, metaclass=ABCMeta):
     """Summary Line:\n
     遷移先のページリンクを取得するときに、JavaScriptで動的に生成される場合に利用する。\n
     各メソッドを実行し、それぞれのリンクを取得する。\n
@@ -130,9 +130,9 @@ class SeleniumMiddleware(object):
         self.options.add_experimental_option("prefs", prefs)
         browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
-        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        
     
-    def __callJisCode(self, pref_name) -> int:
+    def callJisCode(self, pref_name) -> int:
         """Sumary Line.\n
         指定都道府県の名前から、都道府県コードを取得する。\n
         Args:\n
@@ -143,6 +143,27 @@ class SeleniumMiddleware(object):
         
         jis_code = JisCode(pref_name)
         return jis_code
+    
+    @abstractmethod
+    def extraction(self) -> list:
+        """Summary Line.\n
+        リンクを取得するメソッド。\n
+        Returns:\n
+            list:リンクのリスト\n
+        """
+        pass
+    
+ 
+    def quitDriver(self) -> None:
+        """Summary Line.\n
+        ブラウザを終了する。\n
+        """
+        self.driver.quit()
+
+class CityUrlExtraction(SeleniumMiddleware):
+    def __init__(self):
+        super(CityUrlExtraction, self).__init__()
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         
     def __CityLinkExtraction(self, pref_code:int) -> list:
         """Summary Line.\n
@@ -152,7 +173,6 @@ class SeleniumMiddleware(object):
         Returns:\n
             list:市区町村レベルのリンクのリスト\n
         """
-        
         url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
         wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
         self.driver.get(url)
@@ -164,7 +184,7 @@ class SeleniumMiddleware(object):
             urls.append(tag.get_attribute('href'))
         return urls
         
-    def city_list(self, pref_name:str) -> list:
+    def extraction(self, pref_name:str) -> list:
         """Summary Line.\n
         指定都道府県のリンクを取得し、そのリストを返却する。\n
         メソッド__CityLinkExtraction()の呼び出し処理。\n
@@ -174,11 +194,16 @@ class SeleniumMiddleware(object):
         Returns:\n
             list:市区町村レベルのリンクのリスト\n
         """
-        jis_code = self.__callJisCode(pref_name)
+        jis_code = self.callJisCode(pref_name)
         url_list = self.__CityLinkExtraction(jis_code)
         return url_list
     
-    def big_junle_list(self, city_url_list:list) -> list:
+class BigJunleExtraction(SeleniumMiddleware):
+    def __init__(self):
+        super(BigJunleExtraction, self).__init__()
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+
+    def extraction(self, city_url_list:list) -> list:
         """[summary]\n
 
         Args:\n
@@ -212,7 +237,13 @@ class SeleniumMiddleware(object):
             url_list.append(add_links)
         return url_list
 
-    def small_junle_list(self, big_junle_list:list, process_count:int) -> list:
+class SmallJunleExtraction(SeleniumMiddleware):
+    
+    def _init__(self):
+        super(SmallJunleExtraction, self).__init__()
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+
+    def extraction(self, big_junle_list:list, process_count:int) -> list:
         """[summary]\n
         大ジャンルごとのリンクを参照し、その遷移先の小ジャンルのリンクを返却する。\n
         Args:\n
@@ -240,9 +271,6 @@ class SeleniumMiddleware(object):
             result_url_list.append(result)
         print(result_url_list)
                 
-        
-                
-    
     def __LittleGenreListCalling(self, url_list:list) -> list:
         """Summary Line.\n
         小ジャンルごとのリンクを取得し、そのリストを返却する。\n
@@ -283,12 +311,7 @@ class SeleniumMiddleware(object):
             result_list.append(a.get_attribute('href'))
         #for url in big_junle_url_list:
         return result_list
- 
-    def quitDriver(self) -> None:
-        """Summary Line.\n
-        ブラウザを終了する。\n
-        """
-        self.driver.quit()
+
 
 if __name__ == '__main__':
     freeze_support()
@@ -305,11 +328,14 @@ if __name__ == '__main__':
     print(newlist)
     """
     #Test call
-    selenium_middle = SeleniumMiddleware()
-    result_city = selenium_middle.city_list('徳島県')
-    print(result_city)
-    result_big_junle = selenium_middle.big_junle_list(result_city)
-    print(result_big_junle)
-    result_small_junle = selenium_middle.small_junle_list(result_big_junle, 4)
-    #print(result_small_junle)
-    selenium_middle.quitDriver()
+    city_list_extraction = CityUrlExtraction()
+    result1 = city_list_extraction.extraction('徳島県')
+    print(result1)
+    city_list_extraction.quitDriver()
+    big_junle_extraction = BigJunleExtraction()
+    result2 = big_junle_extraction.extraction(result1)
+    print(result2)
+    big_junle_extraction.quitDriver()
+    
+    
+    
