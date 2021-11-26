@@ -45,7 +45,7 @@ DOWNLOAD_DELAY = 3
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    'ekitenScrapy.middlewares.EkitenscrapySpiderMiddleware': 543,
+#    'ekitenScrapy.selenium_middleware.SeleniumMiddlewares': 543,
 #}
 
 # Enable or disable downloader middlewares

@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from bs4 import BeautifulSoup as Soup
-from JisCode import JisCode
+#from JisCode import JisCode
 from multiprocessing import Pool, Manager, freeze_support
 import requests
 import os
@@ -16,7 +16,68 @@ import sys
 
 
 #Local finctions here
+def JisCode(pref_name:str)->int:
+    """[summary]\n
 
+    Args:\n
+        pref_name (str): 取得したいコードの都道府県名\n
+
+    Returns:\n
+        int: pref_nameのJISコード\n
+    """
+    jis_code = {
+        "北海道": 1,
+        "青森県": 2,
+        "岩手県": 3,
+        "宮城県": 4,
+        "秋田県": 5,
+        "山形県": 6,
+        "福島県": 7,
+        "茨城県": 8,
+        "栃木県": 9,
+        "群馬県": 10,
+        "埼玉県": 11,
+        "千葉県": 12,
+        "東京都": 13,
+        "神奈川県": 14,
+        "新潟県": 15,
+        "富山県": 16,
+        "石川県": 17,
+        "福井県": 18,
+        "山梨県": 19,
+        "長野県": 20,
+        "岐阜県": 21,
+        "静岡県": 22,
+        "愛知県": 23,
+        "三重県": 24,
+        "滋賀県": 25,
+        "京都府": 26,
+        "大阪府": 27,
+        "兵庫県": 28,
+        "奈良県": 29,
+        "和歌山県": 30,
+        "鳥取県": 31,
+        "島根県": 32,
+        "岡山県": 33,
+        "広島県": 34,
+        "山口県": 35,
+        "徳島県": 36,
+        "香川県": 37,
+        "愛媛県": 38,
+        "高知県": 39,
+        "福岡県": 40,
+        "佐賀県": 41,
+        "長崎県": 42,
+        "熊本県": 43,
+        "大分県": 44,
+        "宮崎県": 45,
+        "鹿児島県": 46,
+        "沖縄県": 47
+    }
+    
+    return jis_code[pref_name]
+    
+    
 def convert_1d_to_2d(l:list) -> list:
     """[summary]
     1次元のリストを2次元に変換する
@@ -316,7 +377,9 @@ class SeleniumMiddlewares():
     
     def __procedure(self, area):
         city_list = self.city_ext.extraction(area)
+        self.city_ext.quitDriver()
         big_junle_list = self.big_junle_ext.extraction(city_list)
+        self.big_junle_ext.quitDriver()
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
         apply_results = []
         for splitElm in big_junle_split_lists:
@@ -325,6 +388,7 @@ class SeleniumMiddlewares():
             apply_results.append(async_result)
         result = self.__join_process(apply_results)
         print(result)
+        return result
         
     def __join_process(self, apply_results:list) -> list:
         """[summary]\n

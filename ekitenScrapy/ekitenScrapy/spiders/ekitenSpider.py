@@ -2,15 +2,15 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-
 import scrapy
 from ekitenScrapy.items import EkitenscrapyItem
 from ..middlewares import *
-from ..selenium_middleware import *
+from ..JisCode import JisCode
+from ..selenium_middleware import SeleniumMiddlewares
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    start_urls = ['https://www.ekiten.jp/shop_6764092/'] #一旦試験的に、徳島のみ。
+    start_urls = [] #一旦試験的に、徳島のみ。
     
     """
     custom_settings = {
@@ -19,10 +19,15 @@ class EkitenspiderSpider(scrapy.Spider):
         },
     }
     """
-        
+    
         
     def parse(self, response):
-       
+        #self.start_urls = self.search(response)
+        middleware = SeleniumMiddlewares('徳島県', 4)
+        result = middleware.run()
+        for url in result:
+            yield scrapy.Request(result)
+            
         item = EkitenscrapyItem()
         for url in response.css('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.p-shop_content_container.p-shop_content_container_relative > table > tbody > tr:nth-child(3) > td'):
             #市区町村の絞り込み
