@@ -15,8 +15,24 @@ import os
 import sys
 
 
-
 #Local finctions here
+
+def convert_1d_to_2d(l:list) -> list:
+    """[summary]
+    1次元のリストを2次元に変換する
+    Args:
+        l (list): 1次元のリスト
+    Returns:
+        list: 2次元のリスト
+    """
+    result = []
+    for i in range(len(l)):
+        for j in range(len(l[i])):
+            result.append(l[i][j])
+    
+    return result
+    
+
 
 def resource_path(relative_path):
     """
@@ -101,15 +117,11 @@ def list_split(n:int, l:list) -> list:
         
     
 
-class SeleniumMiddleware(object, metaclass=ABCMeta):
+class AbsExtraction(object, metaclass=ABCMeta):
     """Summary Line:\n
+    クローラーの中間処理を実装する抽象クラス。
     遷移先のページリンクを取得するときに、JavaScriptで動的に生成される場合に利用する。\n
-    各メソッドを実行し、それぞれのリンクを取得する。\n
-    ＜呼び出し可能メソッド一覧＞※各メソッドの引数は、それぞれのメソッドの説明を参照。\n
-    ・city_list(pref_name) -> 市区町村URLのリスト\n
-    ・big_junle_list(city_url_list) -> 市区町村ごとの大ジャンルURLを格納した２次元リスト\n
-    ・準備中\n
-    
+    継承先の各子クラスで、レベル別（市区町村、大ジャンル、小ジャンル）に実際の抽出処理を実装する。\n
     """
     
     def __init__(self):
@@ -153,14 +165,14 @@ class SeleniumMiddleware(object, metaclass=ABCMeta):
         """
         pass
     
- 
+    @abstractmethod
     def quitDriver(self) -> None:
         """Summary Line.\n
         ブラウザを終了する。\n
         """
-        self.driver.quit()
+        pass
 
-class CityUrlExtraction(SeleniumMiddleware):
+class CityUrlExtraction(AbsExtraction):
     def __init__(self):
         super(CityUrlExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
@@ -192,13 +204,16 @@ class CityUrlExtraction(SeleniumMiddleware):
         Args:\n
             pref_name (str):取得する市区町村の都道府県名\n
         Returns:\n
-            list:市区町村レベルのリンクのリスト\n
+            list:市区町村レベルのリンクのリスト[url, url,....]\n
         """
-        jis_code = self.callJisCode(pref_name)
+        jis_code = JisCode(pref_name)
         url_list = self.__CityLinkExtraction(jis_code)
         return url_list
     
-class BigJunleExtraction(SeleniumMiddleware):
+    def quitDriver(self) -> None:
+        self.driver.quit()
+    
+class BigJunleExtraction(AbsExtraction):
     def __init__(self):
         super(BigJunleExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
@@ -236,82 +251,100 @@ class BigJunleExtraction(SeleniumMiddleware):
                 add_links.append(a.get_attribute('href'))
             url_list.append(add_links)
         return url_list
+    
+    def quitDriver(self) -> None:
+        self.driver.quit()
 
-class SmallJunleExtraction(SeleniumMiddleware):
+class SmallJunleExtraction(AbsExtraction):
     
     def _init__(self):
         super(SmallJunleExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
 
-    def extraction(self, big_junle_list:list, process_count:int) -> list:
+    def extraction(self, big_junle_list:list) -> list:
         """[summary]\n
         大ジャンルごとのリンクを参照し、その遷移先の小ジャンルのリンクを返却する。\n
         Args:\n
             big_junle_list(list):大ジャンルのURLリスト\n
-            process_count(int):並列処理を行うブラウザの個数（推奨：１～４まで）\n
         Returns:\n
             list: 小ジャンルごとのURLリスト\n
         """
-        maneger = Manager()
-        url_list = maneger.list()
-        splitedList = list_split(process_count, big_junle_list)
-        print(splitedList)
-        print(len(splitedList))
-        #p = Pool(process_count)
-        result_url_list = []
-        async_results = []
-        for splitElm in splitedList:
-            for url_list in splitElm:
-                print(url_list)
-                p = Pool(process_count)
-                async_result = p.apply_async(test_process, args=(url_list,))
-                async_results.append(async_result)
-            
-            result = process_join(async_results)
-            result_url_list.append(result)
-        print(result_url_list)
-                
-    def __LittleGenreListCalling(self, url_list:list) -> list:
-        """Summary Line.\n
-        小ジャンルごとのリンクを取得し、そのリストを返却する。\n
-        Args:url_list(list<-Multiprocess.Maneger.list):大ジャンルの遷移先のURLリスト\n
-        Returns:小ジャンルのリスト\n
-        """
-        result = []
-        print("hello")
-        #for url in url_list:
-            #driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
-            #driver.get(url)
-            
-            #wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
-            #wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
-            #a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
-            #for a in a_tags:
-                #result.append(a.get_attribute('href'))
-            #add = self.__small_junle_link_extraction(url)
-            #result.append(add)
-        #return result
-    
-    def __small_junle_link_extraction(self, url:str) -> list:
+        result = self.__small_junle_link_extraction(big_junle_list)
+        return result
+
+        
+    def __small_junle_link_extraction(self, url_list:list) -> list:
         """[summary]\n
         大ジャンルリンク先の小ジャンルリンクを抽出し、そのリンクのリストを返す処理。\n
         Args:\n
-            url (str): 大ジャンルのURL\n
+            url_list (list): 大ジャンルのURLリスト\n
         Returns:\n
             list: 大ジャンルごとの中小ジャンルリンクリスト\n
         """
         result_list = []
         driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
-        driver.get(url)
-        
-        wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
-        a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
-        for a in a_tags:
-            result_list.append(a.get_attribute('href'))
-        #for url in big_junle_url_list:
+        for url in url_list:
+            driver.get(url)
+            wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
+            a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
+            for a in a_tags:
+                result_list.append(a.get_attribute('href'))
+        driver.quit()
+        print(result_list)
         return result_list
 
+    def quitDriver(self) -> None:
+        self.driver.quit()
+        
+class SeleniumMiddlewares():
+    
+    def __init__(self, area_list:list, process_count:int) -> None:
+        """[summary]\n
+        各実装クラスのインスタンスを生成し、それぞれのインスタンスに対して抽出処理を実行する。\n
+        Args:\n
+            area_list ([str]): 都道府県のリスト\n
+            process_count (int): 並列処理を行うブラウザの個数（推奨：１～４まで）\n
+        """
+        self.city_ext = CityUrlExtraction()
+        self.big_junle_ext = BigJunleExtraction()
+        self.small_junle_ext = SmallJunleExtraction()
+        self.area_list = area_list
+        self.process_count = process_count
+        self.p = Pool(self.process_count)
+    
+    
+    def __procedure(self, area):
+        city_list = self.city_ext.extraction(area)
+        big_junle_list = self.big_junle_ext.extraction(city_list)
+        big_junle_split_lists = list_split(self.process_count, big_junle_list)
+        apply_results = []
+        for splitElm in big_junle_split_lists:
+            oned_list = convert_1d_to_2d(splitElm)
+            async_result = self.p.apply_async(self.small_junle_ext.extraction, args=([oned_list]))
+            apply_results.append(async_result)
+        result = self.__join_process(apply_results)
+        print(result)
+        
+    def __join_process(self, apply_results:list) -> list:
+        """[summary]\n
+        各並列処理の戻り値をまとめる。\n
+        Args:\n
+            apply_results ([list]): 各並列処理の戻り値のリスト\n
+        Returns:\n
+            list: 小ジャンルリンクのリスト\n
+        """
+        result = []
+        for result_list in apply_results:
+            result.append(result_list.get())
+        return result
+        
+            
+
+    def run(self):
+        for area in self.area_list:
+            self.__procedure(area)
+            
 
 if __name__ == '__main__':
     freeze_support()
@@ -328,14 +361,6 @@ if __name__ == '__main__':
     print(newlist)
     """
     #Test call
-    city_list_extraction = CityUrlExtraction()
-    result1 = city_list_extraction.extraction('徳島県')
-    print(result1)
-    city_list_extraction.quitDriver()
-    big_junle_extraction = BigJunleExtraction()
-    result2 = big_junle_extraction.extraction(result1)
-    print(result2)
-    big_junle_extraction.quitDriver()
-    
-    
+    test = SeleniumMiddlewares(['徳島県'], 4)
+    test.run()
     
