@@ -78,13 +78,13 @@ def JisCode(pref_name:str)->int:
     return jis_code[pref_name]
     
     
-def convert_1d_to_2d(l:list) -> list:
+def convert2d_to_1d(l:list) -> list:
     """[summary]
-    1次元のリストを2次元に変換する
+    2次元のリストを1次元に変換する
     Args:
-        l (list): 1次元のリスト
+        l (list): 2次元のリスト
     Returns:
-        list: 2次元のリスト
+        list: 1次元のリスト
     """
     result = []
     for i in range(len(l)):
@@ -204,19 +204,6 @@ class AbsExtraction(object, metaclass=ABCMeta):
         browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
         
-    
-    def callJisCode(self, pref_name) -> int:
-        """Sumary Line.\n
-        指定都道府県の名前から、都道府県コードを取得する。\n
-        Args:\n
-            pref_name (str):取得する都道府県の名前\n
-        Returns:\n
-            int:都道府県コード\n
-        """
-        
-        jis_code = JisCode(pref_name)
-        return jis_code
-    
     @abstractmethod
     def extraction(self) -> list:
         """Summary Line.\n
@@ -376,6 +363,14 @@ class SeleniumMiddlewares():
     
     
     def __procedure(self, area):
+        """[summary]\n
+
+        Args:
+            area (str): 対象都道府県
+
+        Returns:
+            list: その都道府県の小ジャンルごとのURLリスト
+        """
         city_list = self.city_ext.extraction(area)
         self.city_ext.quitDriver()
         big_junle_list = self.big_junle_ext.extraction(city_list)
@@ -383,7 +378,7 @@ class SeleniumMiddlewares():
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
         apply_results = []
         for splitElm in big_junle_split_lists:
-            oned_list = convert_1d_to_2d(splitElm)
+            oned_list = convert2d_to_1d(splitElm)
             async_result = self.p.apply_async(self.small_junle_ext.extraction, args=([oned_list]))
             apply_results.append(async_result)
         result = self.__join_process(apply_results)
@@ -406,8 +401,12 @@ class SeleniumMiddlewares():
             
 
     def run(self):
+        result = []
         for area in self.area_list:
-            self.__procedure(area)
+            result.append(self.__procedure(area))
+        result_2d = convert2d_to_1d(result)
+        result_1d = convert2d_to_1d(result_2d)
+        return result_1d
             
 
 if __name__ == '__main__':

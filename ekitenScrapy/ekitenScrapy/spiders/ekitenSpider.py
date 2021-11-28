@@ -10,7 +10,7 @@ from ..selenium_middleware import SeleniumMiddlewares
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    start_urls = [] #一旦試験的に、徳島のみ。
+    #start_urls = [] #一旦試験的に、徳島のみ。
     
     """
     custom_settings = {
@@ -19,14 +19,20 @@ class EkitenspiderSpider(scrapy.Spider):
         },
     }
     """
-    
+    def start_requests(self):
+        """Summary Lines
+        店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
+        Yields:
+            str: middlewareで返却された小ジャンルURL
+        """
+        middleware = SeleniumMiddlewares(['徳島県'], 4)
+        result = middleware.run()
+        for url in result:
+            yield scrapy.Request(url)
+        
         
     def parse(self, response):
         #self.start_urls = self.search(response)
-        middleware = SeleniumMiddlewares('徳島県', 4)
-        result = middleware.run()
-        for url in result:
-            yield scrapy.Request(result)
             
         item = EkitenscrapyItem()
         for url in response.css('body > div.l-wrapper > div > div.l-contents_wrapper > main > div.p-shop_content_container.p-shop_content_container_relative > table > tbody > tr:nth-child(3) > td'):
