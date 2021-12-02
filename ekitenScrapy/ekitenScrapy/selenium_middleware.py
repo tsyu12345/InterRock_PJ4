@@ -186,7 +186,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
     """
     
     def __init__(self):
-        self.driver_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe'
+        self.driver_path = '../chromedriver.exe'
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
@@ -201,7 +201,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options.add_argument('--ignore-ssl-errors')
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
-        browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
+        browser_path = '../chrome-win/chrome.exe'
         self.options.binary_location = browser_path
         
     @abstractmethod
