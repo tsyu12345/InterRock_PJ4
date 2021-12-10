@@ -87,6 +87,11 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         item = EkitenscrapyItem()
         print("#####parse#####")
+        item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
+        tel_elm = response.css('div.p-tel_modal_phone_number_section > p > i.fa fa-phone').get()
+        item['store_tel'] =  tel_elm.extract_first() if tel_elm is not None else None #電話番号
+        name_elm = response.css('h1.p-shop_header_name').get()
+        item['store_name'] =  name_elm.extract_first() if name_elm is not None else None#店名
         
         """
         scraping items below
