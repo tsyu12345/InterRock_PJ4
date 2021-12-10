@@ -63,26 +63,28 @@ class EkitenspiderSpider(scrapy.Spider):
         for elm in response.css('div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a'):
             href = elm.css('a::attr(href)').extract_first()
             url = response.urljoin(href)
-            yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
+            yield scrapy.Request(url, callback=self.hon_parse, errback=self.error_parse)
+            print("call store info scraping..")
         
         #次のページがあるかどうか
         next_page = response.css('div.p-pagination_next > a.button')
-        print(type(next_page))
-        if next_page is not []:
+        print(next_page)
+        if next_page.get() is not None:
             print("#####next page#####")
-            next_page_url = response.urljoin(next_page[0].css('a::attr(href)').extract_first())
+            next_page_url = response.urljoin(next_page.css('a::attr(href)').extract_first())
             print(next_page_url)
             yield scrapy.Request(next_page_url, callback=self.parse, errback=self.error_parse)
         
             
             
-    """
-    def parse(self, response):
-       Summary Lines
+    
+    def hon_parse(self, response):
+        """
+        Summary Lines
         本スクレイピング処理。店舗のページにアクセスして情報をitemsに格納する。
         Args:
             response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト
-       
+        """
         item = EkitenscrapyItem()
         print("#####parse#####")
-    """
+    
