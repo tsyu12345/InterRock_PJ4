@@ -12,7 +12,7 @@ from ..selenium_middleware import SeleniumMiddlewares
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    start_urls = ['https://www.ekiten.jp/area/a_prefecture36/']
+    start_urls = ['https://www.ekiten.jp/shop_88106804/']
     MAX_RRTRYCOUNT = 3
     RETEYED = 0
     """
@@ -46,7 +46,7 @@ class EkitenspiderSpider(scrapy.Spider):
                 dont_filter=True)
             self.RETEYED += 1 
           
-    def parse(self, response):
+    def pre_parse(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
         Args:
@@ -78,7 +78,7 @@ class EkitenspiderSpider(scrapy.Spider):
             
             
     
-    def store_parse(self, response):
+    def parse(self, response):
         """
         Summary Lines
         本スクレイピング処理。店舗のページにアクセスして情報をitemsに格納する。
@@ -87,11 +87,16 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         item = EkitenscrapyItem()
         print("#####parse#####")
-        item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
-        tel_elm = response.css('div.p-tel_modal_phone_number_section > p > i.fa fa-phone').get()
-        item['store_tel'] =  tel_elm.extract_first() if tel_elm is not None else None #電話番号
-        name_elm = response.css('h1.p-shop_header_name').get()
-        item['store_name'] =  name_elm.extract_first() if name_elm is not None else None#店名
+        #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
+        tel_elm:str = response.css('div.p-tel_modal_phone_number_section > p::text').extract()[1]
+        item['store_tel'] =  tel_elm.replace('\n', '') if tel_elm is not None else None #電話番号
+        print(item['store_tel'])
+        name_elm = response.css('h1.p-shop_header_name > a::text').extract()[0]
+        item['store_name'] =  name_elm if name_elm is not None else None#店名
+        print(item['store_name'])
+        name_kana_elm = response.css('span.p-shop_header_name_phonetic::text').extract()[0]
+        item['str_name_kana'] = name_kana_elm if name_kana_elm is not None else None #店名カナ
+        print(item['str_name_kana'])
         
         """
         scraping items below
