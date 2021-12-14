@@ -109,28 +109,46 @@ class EkitenspiderSpider(scrapy.Spider):
         
         address_list = self.__addressSegmentation(response)#住所リスト
         item['pref_code'] = JisCode(address_list[1])#都道府県コード
+        print(item['pref_code'])
         item['pref'] = address_list[1]#都道府県
+        print(item['pref'])
         item['city'] = address_list[2]#市区町村・番地
+        print(item['city'])
         item['full_address'] = address_list[0] #住所
+        print(item['full_address'])
         
+        url:str = response.request.url
+        print(url)
+        item['store_link'] = url #scrapingする掲載URL   
+        splited_url = url.split('/')
+        item['shop_id'] = int(splited_url[3].replace('shop_', ''))#shopID
+        print(item['shop_id'])
+        
+        home_pages = self.__table_extraction(response, 'URL')
+        for i, page in enumerate(home_pages):
+            if i+1 > 3:
+                break
+            else:
+                item['st_home_page' + str(i+1)] = page
+        
+        pankuzu_header_div = response.css('div.layout_media.p-topic_path_container > div.layout_media_wide > div.topic_path')
+        pan_list = []
+        pankuzu_path1:list = pankuzu_header_div.css('a::text').extract()
+        for text in pankuzu_path1:
+            pan_list.append(text)
+        pankuzu_path2:list = pankuzu_header_div.css('em::text').extract()
+        for text in pankuzu_path2:
+            pan_list.append(text)
+        pankuzu_header:str = ""
+        for text in pan_list:
+            pankuzu_header += text + "/"
+        item['pankuzu'] =  pankuzu_header #パンクズヘッダー
+        print(item['pankuzu'])
         
         """
         scraping items below
         item['store_big_junle'] =  #大ジャンル
-        item['store_tel'] =  #電話番号
-        item['store_name'] =  #店名
-        item['str_name_kana'] =  #店名カナ
-        item['price_plan'] =  #料金プラン
-        item['pref_code'] =  #都道府県コード
-        item['pref'] =  #都道府県
-        item['city'] =  #市区町村・番地
-        item['full_address'] =  #住所
-        item['store_link'] =  #scrapingする掲載URL
-        item['shop_id'] =  #shopID
-        item['st_home_page1'] =  #店舗ホームページ1
-        item['st_home_page2'] =  #店舗ホームページ2
-        item['st_home_page3'] =  #店舗ホームページ3
-        item['pankuzu'] =  #パンクズヘッダー
+        
         item['catch_cp'] =  #キャッチコピー
         item['is_official'] =  #公式店かどうか
         item['evaluation_score'] =  #評価点
@@ -166,6 +184,31 @@ class EkitenspiderSpider(scrapy.Spider):
         item['multi_acccess'] =  #マルチアクセス
         item['introduce'] =  #紹介文
     """
+    
+    def __table_extraction(self, response, menu:str) -> list:
+        """
+        Summary Lines\n
+        指定項目のテーブル要素を抽出する\n
+        Args:\n
+            response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト\n
+            menu (str):抽出したい項目の文字列\n
+        Returns:\n
+            抽出文字列を格納したリスト[str]\n
+        """
+        result_list = []
+        table_elm = response.css('table.table.p-shop_detail_table.u-mb15 > tbody > tr')
+        for elm in table_elm:
+            if menu in elm.css('th').extract()[0]:
+                
+                if menu == 'URL': #URL処理のみ複数考えられるので別処理する。
+                    url_elms = elm.css('li.u-fz_s u-mb05 > a')
+                    for a in url_elms:
+                        result_list.append(a.css('a::text').extract()[0])
+                
+                else:
+                    result_list.append(elm.css('td::text').extract()[0])
+        
+        return result_list
     
     def __addressSegmentation(self, response) -> list:
         """
