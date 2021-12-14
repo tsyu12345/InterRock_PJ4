@@ -1,9 +1,12 @@
+from typing import Mapping
+from bs4.element import PreformattedString
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import scrapy
 import time
+import re
 from ekitenScrapy.items import EkitenscrapyItem
 from ..middlewares import *
 from ..JisCode import JisCode
@@ -12,7 +15,7 @@ from ..selenium_middleware import SeleniumMiddlewares
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    start_urls = ['https://www.ekiten.jp/shop_88106804/']
+    start_urls = ['https://www.ekiten.jp/shop_79608272/']
     MAX_RRTRYCOUNT = 3
     RETEYED = 0
     """
@@ -88,15 +91,28 @@ class EkitenspiderSpider(scrapy.Spider):
         item = EkitenscrapyItem()
         print("#####parse#####")
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
+        
         tel_elm:str = response.css('div.p-tel_modal_phone_number_section > p::text').extract()[1]
         item['store_tel'] =  tel_elm.replace('\n', '') if tel_elm is not None else None #電話番号
         print(item['store_tel'])
+        
         name_elm = response.css('h1.p-shop_header_name > a::text').extract()[0]
         item['store_name'] =  name_elm if name_elm is not None else None#店名
         print(item['store_name'])
+        
         name_kana_elm = response.css('span.p-shop_header_name_phonetic::text').extract()[0]
         item['str_name_kana'] = name_kana_elm if name_kana_elm is not None else None #店名カナ
         print(item['str_name_kana'])
+        
+        item['price_plan'] =  self.__judgeChargePlan(response)#料金プラン 
+        print(item['price_plan'])
+        
+        address_list = self.__addressSegmentation(response)#住所リスト
+        item['pref_code'] = JisCode(address_list[1])#都道府県コード
+        item['pref'] = address_list[1]#都道府県
+        item['city'] = address_list[2]#市区町村・番地
+        item['full_address'] = address_list[0] #住所
+        
         
         """
         scraping items below
@@ -150,3 +166,58 @@ class EkitenspiderSpider(scrapy.Spider):
         item['multi_acccess'] =  #マルチアクセス
         item['introduce'] =  #紹介文
     """
+    
+    def __addressSegmentation(self, response) -> list:
+        """
+        Summary Lines
+        住所を分割する。
+        Args:
+            response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト
+        Returns:
+            分割後の住所を格納したリスト[allAddress, prefecture, municipalities]
+        """
+        result_list = [None, None, None]
+        table_elm = response.css('table.table.p-shop_detail_table.u-mb15 > tbody > tr')
+       
+        print("#####table_elm#####")
+        for elm in table_elm:
+            #print(elm.css('tr').get())
+            if '住所' in elm.css('th').extract()[0]: #住所の欄を探す
+                get_str:str = elm.css('td::text').extract()[0] #住所を取得
+                #文字列を整形する
+                get_str = get_str.replace('\n', '')
+                get_str = get_str.replace('\t', '')
+                get_str = get_str.replace('                ', '')
+                
+                all_address = get_str
+                prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str).group()
+                splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
+                municipalities = splited_address[1]
+                result_list[0] = all_address
+                result_list[1] = prefecture
+                result_list[2] = municipalities
+        
+        return result_list
+        
+        
+    def __judgeChargePlan(self, response) -> str:
+        """
+        Summary Lines
+        料金プランを判定する。
+        Args:
+            response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト
+        Returns:
+            str: 料金プラン(月額5000円or非会員or無料会員)
+        """
+        result:str = ""
+        near_store_elm = response.css('div.p-area_match_title .heading .lv2').extract_first()
+        profile_photo_elm = response.css('div.lazy_load_container').extract_first()
+        
+        if near_store_elm is None:
+            result = "月額5000円"
+        elif profile_photo_elm is None:
+            result = "非会員"
+        else:
+            result = "無料会員"
+        return result
+        
