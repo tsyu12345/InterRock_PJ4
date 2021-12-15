@@ -145,6 +145,18 @@ class EkitenspiderSpider(scrapy.Spider):
         item['pankuzu'] =  pankuzu_header #パンクズヘッダー
         print(item['pankuzu'])
         
+        
+        item['is_official'] = self.__is_official(response)#公式店かどうか
+        print(item['is_official'])
+        
+        item['evaluation_score'] =  response.css('div.rating_stars_num tooltip > span.tooltip_trigger::text').extract_first()#評価点
+        print(item['evaluation_score'])
+        
+        item['review_count'] = response.css('span.p-shop_header_rating_detail_review_num::text').extract_first() #レビュー件数
+        print(item['review_count'])
+        
+        item['access_info'] = response.css('div.p-shop_header_access > div.icon_wrapper_text > span.tooltip p-shop_header_access_root > span::text').extract_first() #アクセス情報
+        print(item['access_info'])
         """
         scraping items below
         item['store_big_junle'] =  #大ジャンル
@@ -184,6 +196,23 @@ class EkitenspiderSpider(scrapy.Spider):
         item['multi_acccess'] =  #マルチアクセス
         item['introduce'] =  #紹介文
     """
+    
+    def __is_official(self, response) ->str:
+        """
+        [summary]\n 
+        公式店か否か判定する。
+        Args:\n
+            response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト\n
+        Returns:\n
+            [str]\n
+            公式店:"●"\n
+            それ以外:""\n
+        """
+        offucial_elm = response.css('span.tag_icon official tooltip_trigger').extract_first()
+        if offucial_elm is not None:
+            return "●"
+        else:
+            return ""
     
     def __table_extraction(self, response, menu:str) -> list:
         """
