@@ -15,7 +15,7 @@ from ..selenium_middleware import SeleniumMiddlewares
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    start_urls = ['https://www.ekiten.jp/shop_79608272/']
+    start_urls = ['https://www.ekiten.jp/shop_88106804/']
     MAX_RRTRYCOUNT = 3
     RETEYED = 0
     """
@@ -100,7 +100,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['store_name'] =  name_elm if name_elm is not None else None#店名
         print(item['store_name'])
         
-        name_kana_elm = response.css('span.p-shop_header_name_phonetic::text').extract()[0]
+        name_kana_elm = response.css('span.p-shop_header_name_phonetic::text').extract_first()
         item['str_name_kana'] = name_kana_elm if name_kana_elm is not None else None #店名カナ
         print(item['str_name_kana'])
         
@@ -155,8 +155,40 @@ class EkitenspiderSpider(scrapy.Spider):
         item['review_count'] = response.css('span.p-shop_header_rating_detail_review_num::text').extract_first() #レビュー件数
         print(item['review_count'])
         
-        item['access_info'] = response.css('div.p-shop_header_access > div.icon_wrapper_text > span.tooltip p-shop_header_access_root > span::text').extract_first() #アクセス情報
+        item['access_info'] = response.xpath('/html/body/div[2]/div/div[1]/div[3]/div/div[1]/div[2]/div/div[1]/div/div/div[1]/div/span[1]/span/text()').extract_first() #アクセス情報
         print(item['access_info'])
+        
+        first_junle = response.css('ul.p-shop_header_genre > li > a::text').extract_first()
+        print(first_junle)
+        item['junle1'] = first_junle if first_junle is not None else None #ジャンル1
+        
+        other_junle = response.css('ul.p-shop_header_genre > li > span::text').extract()
+        for i, junle in enumerate(other_junle):
+            if i > 2:
+                break
+            else:
+                item['junle' + str(i+2)] =  junle if junle is not None else None #ジャンル2以降
+                print(item['junle' + str(i+2)])
+        
+        tag_dic = {
+            "早朝OK":"can_early_morning",
+            "日祝OK":"can_date_celebration",
+            "夜間OK":"can_night",
+            "駐車場有":"has_park",
+            "ネット予約":"can_rev_net",
+            "クーポン有":"has_coupon",
+            "カード可":"can_card",
+            "配達OK":"can_delivery",
+        }
+        
+        tag_group = response.css('ul.p-shop_header_tag_list.tag_group > li > a::text').extract()
+        print(tag_group)
+        for tag in tag_group: 
+            if tag in tag_dic:
+                item[tag_dic[tag]] = "●"
+                print(tag_dic[tag] + "●")
+                
+        
         """
         scraping items below
         item['store_big_junle'] =  #大ジャンル
@@ -167,18 +199,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['review_count'] =  #レビュー件数
         item['image_count'] =  #画像件数
         item['access_info'] =  #アクセス情報
-        item['junle1'] =  #ジャンル1
-        item['junle2'] =  #ジャンル2
-        item['junle3'] =  #ジャンル3
-        item['junle4'] =  #ジャンル4
-        item['can_early_morning'] =  #早朝OK
-        item['can_date_celebration'] =  #日祝OK
-        item['can_night'] =  #夜間OK
-        item['has_park'] =  #駐車場あり
-        item['can_rev_net'] =  #ネット予約OK
-        item['has_coupon'] =  #クーポンあり
-        item['can_card'] =  #カード利用OK
-        item['can_delivery'] =  #配達OK
+        
         item['latitude'] =  #緯度
         item['longitude'] =  #経度
         item['closest_station'] =  #最寄り駅
