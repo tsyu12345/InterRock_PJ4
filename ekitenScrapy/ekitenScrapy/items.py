@@ -59,7 +59,7 @@ class EkitenscrapyItem(scrapy.Item):
     here_is_great = scrapy.Field() #ここがすごい
     media_related = scrapy.Field() #メディア関連
     pricing = scrapy.Field() #価格設定
-    multi_acccess = scrapy.Field() #マルチアクセス
+    multi_access = scrapy.Field() #マルチアクセス
     introduce = scrapy.Field() #紹介文
     
     

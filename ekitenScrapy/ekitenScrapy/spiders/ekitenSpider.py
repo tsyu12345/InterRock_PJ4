@@ -12,6 +12,38 @@ from ..middlewares import *
 from ..JisCode import JisCode
 from ..selenium_middleware import SeleniumMiddlewares
 
+
+
+def ArrayElementsReplace(array: list, target_str: str, replace_str:str) -> list:
+    """[summary]
+    配列の要素の指定文字列を指定文字列に置換する。
+    Arguments:
+        array {list} -- 配列
+        target_str {str} -- 置換対象文字列
+        replace_str {str} -- 置換文字列
+    
+    Returns:
+        list -- replace_strで置換した配列
+    """
+    for i in range(len(array)):
+        array[i] = array[i].replace(target_str, replace_str)
+    return array
+
+def ArrayStrsToOneStr(array:list):
+    """[summary]
+    配列の要素を一つの文字列にする。
+    Arguments:
+        array {list} -- 配列
+    
+    Returns:
+        str -- 配列の要素を一つの文字列にする。
+    """
+    str = ""
+    for i in range(len(array)):
+        str += array[i] + " "
+    return str
+
+
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
@@ -193,6 +225,53 @@ class EkitenspiderSpider(scrapy.Spider):
         item['business_hours'] = self.__extraction_work_time(response)#営業時間
         print(item['business_hours'])
         
+        park_info = self.__table_extraction(response, '駐車場')
+        item['park_info'] = park_info[0] if len(park_info) > 0 else None #駐車場情報
+        print(item['park_info'])
+        
+        card_info_list = self.__table_extraction(response, 'クレジットカード')
+        item['credit_info'] = card_info_list[0] if len(card_info_list) > 0 else None #クレジットカード情報
+        print(item['credit_info'])
+        
+        seat_info_list = self.__table_extraction(response, '座席')
+        item['seat_info'] = seat_info_list[0] if len(seat_info_list) > 0 else None #座席情報
+        print(item['seat_info'])
+        
+        use_case_info_list = self.__table_extraction(response, '用途')
+        item['use_case'] = use_case_info_list[0] if len(use_case_info_list) > 0 else None #用途情報
+        print(item['use_case'])
+        
+        menu_info_list = self.__table_extraction(response, 'メニュー')
+        item['menu'] = menu_info_list[0] if len(menu_info_list) > 0 else None #メニュー
+        print(item['menu'])
+        
+        feature_info_list = self.__table_extraction(response, '特徴')
+        item['feature'] = feature_info_list[0] if len(feature_info_list) > 0 else None #特徴
+        print(item['feature'])
+        
+        point_info_list = self.__table_extraction(response, 'ポイント')
+        item['point'] = point_info_list[0] if len(point_info_list) > 0 else None #ポイント
+        print(item['point'])
+        
+        here_is_great_info_list = self.__table_extraction(response, 'ここがすごい！')
+        item['here_is_great'] = here_is_great_info_list[0] if len(here_is_great_info_list) > 0 else None #ここがすごい！
+        print(item['here_is_great'])
+        
+        media_related_info_list = self.__table_extraction(response, 'メディア関連')
+        item['media_related'] = media_related_info_list[0] if len(media_related_info_list) > 0 else None #メディア関連
+        print(item['media_related'])
+        
+        pricing_info_list = self.__table_extraction(response, '価格設定')
+        item['pricing'] = pricing_info_list[0] if len(pricing_info_list) > 0 else None #価格設定
+        print(item['pricing'])
+        
+        multi_access_list = self.__table_extraction(response, 'マルチアクセス')
+        item['multi_access'] = multi_access_list[0] if len(multi_access_list) > 0 else None #マルチアクセス
+        print(item['multi_access']) 
+        
+        introduction_elm = response.css('div.p-shop_introduction_content.js_toggle_content > div.p-shop_introduction_title::text').extract_first()
+        item['introduce'] = introduction_elm if introduction_elm is not None else None #店舗紹介
+        print(item['introduce'])
         
         """
         scraping items below
@@ -209,18 +288,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['longitude'] =  #経度
         item['closest_station'] =  #最寄り駅
        
-        item['park_info'] =  #駐車場情報
-        item['credit_info'] =  #クレジットカード情報
-        item['seat_info'] =  #座席情報
-        item['use_case'] =  #用途
-        item['menu'] =  #メニュー
-        item['feature'] =  #特徴
-        item['point'] =  #ポイント
-        item['here_is_great'] =  #ここがすごい
-        item['media_related'] =  #メディア関連
-        item['pricing'] =  #価格設定
-        item['multi_acccess'] =  #マルチアクセス
-        item['introduce'] =  #紹介文
+        
     """
     
     def __extraction_work_time(self, response):
@@ -235,11 +303,16 @@ class EkitenspiderSpider(scrapy.Spider):
         print(len(head_tag))
         for tag_selector in head_tag:
             menu = tag_selector.css('span.p-shop_header_access_label::text').extract_first()
-            if menu == "営業時間":
-                infomation = tag_selector.css('div.icon_wrapper_text').extract_first()
-                print(infomation)
-            
-    
+            if "営業時間" in menu:
+                business_time_elm = tag_selector.css('ul > li::text').extract()
+                time_list = ArrayElementsReplace(business_time_elm, " ", "")
+                time_list = ArrayElementsReplace(time_list, "\n", "")
+                business_time = ArrayStrsToOneStr(time_list)
+                
+                #print(business_time)
+                return business_time
+               
+                
     def __is_official(self, response) ->str:
         """
         [summary]\n 
@@ -278,9 +351,11 @@ class EkitenspiderSpider(scrapy.Spider):
                         result_list.append(a.css('a::text').extract_first())
                 
                 else:
-                    result_list.append(elm.css('td::text').extract_first())
-                    print(elm.css('td').extract())
-        
+                    result_list.append(elm.css('td::text').extract_first()) 
+                    result_list = ArrayElementsReplace(result_list, "\n", "")
+                    result_list = ArrayElementsReplace(result_list, "  ", "")
+
+        #print(result_list)
         return result_list
     
     def __addressSegmentation(self, response) -> list:
