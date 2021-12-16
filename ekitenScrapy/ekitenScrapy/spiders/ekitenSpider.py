@@ -180,14 +180,19 @@ class EkitenspiderSpider(scrapy.Spider):
             "カード可":"can_card",
             "配達OK":"can_delivery",
         }
-        
         tag_group = response.css('ul.p-shop_header_tag_list.tag_group > li > a::text').extract()
         print(tag_group)
         for tag in tag_group: 
             if tag in tag_dic:
                 item[tag_dic[tag]] = "●"
-                print(tag_dic[tag] + "●")
-                
+                print(tag_dic[tag] + "●") #各特徴タグの有無
+        
+        close_station = self.__table_extraction(response, 'アクセス')
+        #print(close_station)
+        
+        item['business_hours'] = self.__extraction_work_time(response)#営業時間
+        print(item['business_hours'])
+        
         
         """
         scraping items below
@@ -203,7 +208,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['latitude'] =  #緯度
         item['longitude'] =  #経度
         item['closest_station'] =  #最寄り駅
-        item['business_hours'] =  #営業時間
+       
         item['park_info'] =  #駐車場情報
         item['credit_info'] =  #クレジットカード情報
         item['seat_info'] =  #座席情報
@@ -217,6 +222,23 @@ class EkitenspiderSpider(scrapy.Spider):
         item['multi_acccess'] =  #マルチアクセス
         item['introduce'] =  #紹介文
     """
+    
+    def __extraction_work_time(self, response):
+        """[summary]\n
+        ヘッダー部分の営業時間を抽出する。
+        Args:\n
+            response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト\n
+        Returns:\n
+            str: 営業時間\n
+        """
+        head_tag = response.css('div.p-shop_header_access > div.icon_wrapper')
+        print(len(head_tag))
+        for tag_selector in head_tag:
+            menu = tag_selector.css('span.p-shop_header_access_label::text').extract_first()
+            if menu == "営業時間":
+                infomation = tag_selector.css('div.icon_wrapper_text').extract_first()
+                print(infomation)
+            
     
     def __is_official(self, response) ->str:
         """
@@ -253,10 +275,11 @@ class EkitenspiderSpider(scrapy.Spider):
                 if menu == 'URL': #URL処理のみ複数考えられるので別処理する。
                     url_elms = elm.css('li.u-fz_s u-mb05 > a')
                     for a in url_elms:
-                        result_list.append(a.css('a::text').extract()[0])
+                        result_list.append(a.css('a::text').extract_first())
                 
                 else:
-                    result_list.append(elm.css('td::text').extract()[0])
+                    result_list.append(elm.css('td::text').extract_first())
+                    print(elm.css('td').extract())
         
         return result_list
     
