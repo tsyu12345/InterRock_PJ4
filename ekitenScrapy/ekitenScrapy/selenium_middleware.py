@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup as Soup
 #from JisCode import JisCode
 from multiprocessing import Pool, Manager, freeze_support
 import requests
+#import scrapy
+#import spiders.ekitenSpider as ekitenSpider
 import os
 import sys
 
@@ -352,7 +354,7 @@ class SeleniumMiddlewares():
         各実装クラスのインスタンスを生成し、それぞれのインスタンスに対して抽出処理を実行する。\n
         Args:\n
             area_list ([str]): 都道府県のリスト\n
-            process_count (int): 並列処理を行うブラウザの個数（推奨：１～４まで）\n
+            process_count (int): 並列処理を行うブラウザの個数（推奨:１～４まで）\n
         """
         self.city_ext = CityUrlExtraction()
         self.big_junle_ext = BigJunleExtraction()
@@ -396,6 +398,7 @@ class SeleniumMiddlewares():
         result = []
         for result_list in apply_results:
             result.append(result_list.get())
+            
         return result
         
             

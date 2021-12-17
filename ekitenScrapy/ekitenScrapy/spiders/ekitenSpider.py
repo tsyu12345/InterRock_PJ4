@@ -47,21 +47,23 @@ def ArrayStrsToOneStr(array:list):
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    start_urls = ['https://www.ekiten.jp/shop_88106804/']
+    #start_urls = ['https://www.ekiten.jp/shop_88106804/']
     MAX_RRTRYCOUNT = 3
     RETEYED = 0
-    """
+    CRAWLED_URL = []
+    
     def start_requests(self):
+        """
         Summary Lines
         店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
         Yields:
             str: middlewareで返却された小ジャンルURL
-        
-        middleware = SeleniumMiddlewares(item['徳島県'], 4)
+        """
+        middleware = SeleniumMiddlewares(['徳島県'], 4)
         result = middleware.run()
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-    """ 
+     
     def error_parse(self, failure):
         """Summary Lines
         scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
@@ -98,8 +100,10 @@ class EkitenspiderSpider(scrapy.Spider):
         for elm in response.css('div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a'):
             href = elm.css('a::attr(href)').extract_first()
             url = response.urljoin(href)
-            yield scrapy.Request(url, callback=self.hon_parse, errback=self.error_parse)
-            print("call store info scraping..")
+            if url not in self.CRAWLED_URL:#重複スクレイピング対策
+                self.CRAWLED_URL.append(url)
+                yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
+                print("call store info scraping..")
         
         #次のページがあるかどうか
         next_page = response.css('div.p-pagination_next > a.button')
@@ -108,11 +112,9 @@ class EkitenspiderSpider(scrapy.Spider):
             print("#####next page#####")
             next_page_url = response.urljoin(next_page.css('a::attr(href)').extract_first())
             print(next_page_url)
-            yield scrapy.Request(next_page_url, callback=self.parse, errback=self.error_parse)
+            yield scrapy.Request(next_page_url, callback=self.pre_parse, errback=self.error_parse)
         
             
-            
-    
     def parse(self, response):
         """
         Summary Lines
