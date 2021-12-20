@@ -52,6 +52,15 @@ class EkitenspiderSpider(scrapy.Spider):
     RETEYED = 0
     CRAWLED_URL = []
     
+    def __init__(self, prefectures:list, ) -> None:
+        """
+        Summary Lines\n
+        初期化処理。対象都道府県とジャンルを指定する。\n
+        Args:\n
+            prefectures (list): 対象都道府県のリスト\n
+        """
+        self.prefecture_list:list = prefectures
+    
     def start_requests(self):
         """
         Summary Lines
@@ -59,7 +68,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Yields:
             str: middlewareで返却された小ジャンルURL
         """
-        middleware = SeleniumMiddlewares(['徳島県'], 4)
+        middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         result = middleware.run()
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
@@ -73,15 +82,16 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         print("####400 error catch####")
         print("request waiting for 20s")
-        while self.RETEYED < self.MAX_RRTRYCOUNT:
+        if self.RETEYED < self.MAX_RRTRYCOUNT:
             time.sleep(20)
             response = failure.value.response
-            yield scrapy.Request(
+            self.RETEYED += 1
+            return scrapy.Request(
                 response.url, 
                 callback=self.pre_parse, 
                 errback=self.error_parse, 
                 dont_filter=True)
-            self.RETEYED += 1 
+             
           
     def pre_parse(self, response):
         """Summary Lines
