@@ -1,3 +1,4 @@
+from subprocess import call
 from typing import Mapping
 from bs4.element import PreformattedString
 from selenium import webdriver
@@ -8,9 +9,11 @@ import scrapy
 import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
+from multiprocessing import Manager
 from ..middlewares import *
 from ..JisCode import JisCode
 from ..selenium_middleware import SeleniumMiddlewares
+
 
 
 
@@ -52,14 +55,18 @@ class EkitenspiderSpider(scrapy.Spider):
     RETEYED = 0
     CRAWLED_URL = []
     
-    def __init__(self, prefectures:list, ) -> None:
+    def __init__(self, prefectures:list, counter, total_count) -> None:
         """
         Summary Lines\n
         初期化処理。対象都道府県とジャンルを指定する。\n
         Args:\n
             prefectures (list): 対象都道府県のリスト\n
+            counter (Maneger.Value('i', 0)): 処理済み数を格納する共有メモリ変数\n
+            total_count (Maneger.Value('i', 0)): 処理対象数(検索結果数)を格納する共有メモリ変数\n
         """
-        self.prefecture_list:list = prefectures
+        self.prefecture_list:list = prefectures 
+        self.counter = counter
+        self.total_count = total_count
     
     def start_requests(self):
         """
@@ -68,6 +75,12 @@ class EkitenspiderSpider(scrapy.Spider):
         Yields:
             str: middlewareで返却された小ジャンルURL
         """
+        #先に全体の抽出県数を検索。
+        for prefecture in self.prefecture_list:
+            pref_code = JisCode(prefecture)
+            url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
+            yield scrapy.Request(url, call_back=)
+        
         middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         result = middleware.run()
         for url in result:
@@ -92,7 +105,7 @@ class EkitenspiderSpider(scrapy.Spider):
                 errback=self.error_parse, 
                 dont_filter=True)
              
-          
+    
     def pre_parse(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
@@ -105,8 +118,6 @@ class EkitenspiderSpider(scrapy.Spider):
         #self.start_urls = self.search(response)
         print(type(response.status))
         self.RETEYED = 0 #成功したらリトライカウントをリセット
-        item = EkitenscrapyItem()
-        parse_urls = []
         for elm in response.css('div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a'):
             href = elm.css('a::attr(href)').extract_first()
             url = response.urljoin(href)
@@ -285,6 +296,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['introduce'] = introduction_elm if introduction_elm is not None else None #店舗紹介
         print(item['introduce'])
         
+        self.counter.value += 1
         """
         scraping items below
         item['store_big_junle'] =  #大ジャンル

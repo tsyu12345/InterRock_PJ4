@@ -170,14 +170,28 @@ class MainWindow:
             self.window['pref_name'].update(display_area)
 
         if event == '抽出実行':
-            pass 
-            #process here when event is '抽出実行'
+            pref_list = value['pref_name'].split(",")
+            print(pref_list)
+            self.running = True
+            spider = SpiderCall(pref_list)
+            process = th.Thread(target=spider.run, args=())
+            process.start()
+            while self.running:
+                #ProgressDisplay process
+                gui.popup("抽出中...")
+                
+            
             
     def display(self):
         while self.compleate != True:
             event, value = self.window.read()
             self.__event_listener(event, value) 
             
+            
+            if event in ("Quit", None):#Quit window
+                break
+        self.window.close()
+        sys.exit()
         
         
         
