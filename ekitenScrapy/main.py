@@ -6,7 +6,7 @@ from scrapy.utils.project import get_project_settings
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
 import sys
-from multiprocessing import Pool, freeze_support
+from multiprocessing import Pool, freeze_support, Manager
 import threading as th
 
 class SpiderCall:
@@ -17,8 +17,13 @@ class SpiderCall:
     def __init__(self, pref_list:list):
         settings = get_project_settings()
         settings.set('FEED_URI', 'results_TEST.csv')
+        maneger = Manager()
+        self.counter = maneger.Value('i', 0)
         self.process = CrawlerProcess(get_project_settings())
-        self.process.crawl('ekitenSpider', prefectures=pref_list)
+        self.process.crawl('ekitenSpider', prefectures=pref_list, counter=self.counter)
+        
+    def reference_counter(self):
+        return self.counter.value
         
     def run(self):
         self.process.start() # the script will block here until the crawling is finished
@@ -180,6 +185,7 @@ class MainWindow:
                 #ProgressDisplay process
                 gui.popup("抽出中...")
                 
+                
             
             
     def display(self):
@@ -198,3 +204,5 @@ class MainWindow:
         
 #main call
 if __name__ == '__main__':
+    spider = SpiderCall(["徳島県"])
+    spider.run()

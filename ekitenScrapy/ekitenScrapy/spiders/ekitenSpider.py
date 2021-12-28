@@ -96,15 +96,17 @@ class EkitenspiderSpider(scrapy.Spider):
         print("####400 error catch####")
         print("request waiting for 20s")
         if self.RETEYED < self.MAX_RRTRYCOUNT:
-            time.sleep(20)
+            print("RETRYCOUNTER:" + str(self.RETEYED))
+            yield scrapy.Request('https://www.google.com/', cllback=None, errback=self.error_parse)
+            time.sleep(30)
             response = failure.value.response
+            
             self.RETEYED += 1
             return scrapy.Request(
                 response.url, 
                 callback=self.pre_parse, 
                 errback=self.error_parse, 
                 dont_filter=True)
-             
     
     def pre_parse(self, response):
         """Summary Lines
