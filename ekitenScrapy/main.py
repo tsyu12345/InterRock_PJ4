@@ -6,6 +6,8 @@ from scrapy.utils.project import get_project_settings
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
 import sys
+
+#スレッド関係のインポート
 from multiprocessing import Pool, freeze_support, Manager
 import threading as th
 
@@ -18,9 +20,10 @@ class SpiderCall:
         settings = get_project_settings()
         settings.set('FEED_URI', 'results_TEST.csv')
         maneger = Manager()
-        self.counter = maneger.Value('i', 0)
+        self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
+        self.total_counter = maneger.Value('i', 0) #スクレイピングするサイトの総数
         self.process = CrawlerProcess(get_project_settings())
-        self.process.crawl('ekitenSpider', prefectures=pref_list, counter=self.counter)
+        self.process.crawl('ekitenSpider', prefectures=pref_list, counter=self.counter, total_counter=self.total_counter)
         
     def reference_counter(self):
         return self.counter.value
@@ -179,20 +182,23 @@ class MainWindow:
             print(pref_list)
             self.running = True
             spider = SpiderCall(pref_list)
-            process = th.Thread(target=spider.run, args=())
-            process.start()
+            spider_process = th.Thread(target=spider.run, args=())
+            spider_process.start()
             while self.running:
                 #ProgressDisplay process
                 gui.popup("抽出中...")
+                if spider_process.is_alive() is False:
+                    self.running = False
+                    break
+                    
                 
-                
-            
-            
-    def display(self):
+    def display(self) -> None:
+        """[summary]\n
+        メインウィンドウを表示し、全体の流れを制御する。
+        """
         while self.compleate != True:
             event, value = self.window.read()
             self.__event_listener(event, value) 
-            
             
             if event in ("Quit", None):#Quit window
                 break
@@ -200,9 +206,7 @@ class MainWindow:
         sys.exit()
         
         
-        
-        
 #main call
 if __name__ == '__main__':
-    spider = SpiderCall(["徳島県"])
-    spider.run()
+    window = MainWindow()
+    window.display()

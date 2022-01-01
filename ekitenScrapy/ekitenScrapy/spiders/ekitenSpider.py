@@ -67,25 +67,37 @@ class EkitenspiderSpider(scrapy.Spider):
         self.prefecture_list:list = prefectures 
         self.counter = counter
         self.total_count = total_count
-    
+        print("####init####")
+        #先に全体の抽出県数を検索。
+        for prefecture in self.prefecture_list:
+            pref_code = JisCode(prefecture)
+            url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
+            yield scrapy.Request(url, call_back=self.__extraction_shop_result_count, errback=self.error_parse)
+        
+        
     def start_requests(self):
         """
         Summary Lines
         店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
         Yields:
             str: middlewareで返却された小ジャンルURL
-        """
-        #先に全体の抽出県数を検索。
-        for prefecture in self.prefecture_list:
-            pref_code = JisCode(prefecture)
-            url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
-            yield scrapy.Request(url, call_back=)
-        
+        """        
         middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         result = middleware.run()
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
      
+    def __extraction_shop_result_count(self, response):
+        """[summary]\n
+        店舗検索の予測総数を取得し、共有メモリの変数に反映する。 \n   
+        Args:\n
+            response (scrapy.Request): scrapy.Request\n
+        """
+        counter = response.css('dl.search_result_heading_related_list > div > dd::text').extract_first()
+        print(counter)
+        self.total_count.value = int(counter)
+        
+        
     def error_parse(self, failure):
         """Summary Lines
         scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
@@ -153,7 +165,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['store_tel'] =  tel_elm.replace('\n', '') if tel_elm is not None else None #電話番号
         print(item['store_tel'])
         
-        name_elm = response.css('h1.p-shop_header_name > a::text').extract()[0]
+        name_elm = response.css('h1.p-shop_header_name > a::text').extract_first()
         item['store_name'] =  name_elm if name_elm is not None else None#店名
         print(item['store_name'])
         
