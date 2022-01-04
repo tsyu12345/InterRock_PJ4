@@ -100,7 +100,7 @@ class EkitenspiderSpider(scrapy.Spider):
         self.total_count.value = int(counter)
         
         
-    def error_parse(self, failure):
+    def error_parse(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
         scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
         一定時間後にリトライリクエストする。\n
@@ -108,13 +108,13 @@ class EkitenspiderSpider(scrapy.Spider):
             failure (scrapy.Request): scrapy.Request
         """
         print("####400 error catch####")
-        print("request waiting for 20s")
+        print("request waiting for 30s")
         if self.RETEYED < self.MAX_RRTRYCOUNT:
             print("RETRYCOUNTER:" + str(self.RETEYED))
-            yield scrapy.Request('https://www.google.com/', cllback=None, errback=self.error_parse)
+            yield scrapy.Request('https://www.google.com/')
             time.sleep(30)
             response = failure.value.response
-            
+            print("Retry: " + response.url)
             self.RETEYED += 1
             return scrapy.Request(
                 response.url, 

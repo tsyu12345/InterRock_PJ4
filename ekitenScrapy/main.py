@@ -2,7 +2,7 @@
 from time import time
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
-
+from RequestTotalCount import RequestTotalCount
 #GUI関係のインポート
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
@@ -17,18 +17,23 @@ class SpiderCall:
     """
     Summary:\n
     Spyderを実行する。およびその関連機能の呼び出し、参照を行う。
+    Args:\n
+        pref_list(list[str]): 都道府県のリスト\n
+        save_path(str): スクレイピング結果の保存先\n
+        junle(str): スクレイピングするジャンル\n
     """
-    def __init__(self, pref_list:list):
+    def __init__(self, pref_list:list, save_path:str, junle:str):
         settings = get_project_settings()
-        settings.set('FEED_URI', 'results_TEST.csv')
+        settings.set('FEED_URI', save_path)
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.process = CrawlerProcess(get_project_settings())
         self.process.crawl('ekitenSpider', pref_list, self.counter, self.total_counter)
         
-    def reference_counter(self):
-        return self.counter.value
+        #検索総数を取得
+        count = RequestTotalCount(pref_list).get_count()
+        self.total_counter.value = count
         
     def run(self):
         self.process.start() # the script will block here until the crawling is finished
@@ -101,7 +106,7 @@ class BigJunleSelect:
 
     def lay_out(self):
         L = [
-            [gui.Text("抽出ジャンル選択", size=(60, None))],
+            [gui.Text("抽出ジャンル選択", size=(60, None), key='junle_title')],
             [gui.InputOptionMenu(self.junle, key=("Big_junle"), size=(40, None))]
         ]
         return L
@@ -176,7 +181,7 @@ class MainWindow:
         self.window = gui.Window(
             'エキテン掲載情報 抽出ツール', 
             layout=layout, 
-            icon='../../1258d548c5548ade5fb2061f64686e40_xxo.ico'
+            icon='1258d548c5548ade5fb2061f64686e40_xxo.ico'
         )
     
     def __lay_out(self) -> list:
@@ -194,7 +199,7 @@ class MainWindow:
         pref_list = value['pref_name'].split(",")
         print(pref_list)
         self.running = True
-        spider = SpiderCall(pref_list)
+        spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
         spider_process = th.Thread(target=spider.run, args=())
         spider_process.start()
         while self.running:
@@ -203,7 +208,7 @@ class MainWindow:
                 "処理中です.", 
                 spider.counter.value, 
                 spider.total_counter.value, 
-                'progress', 
+                '<In Progress>', 
                 "現在抽出処理中です。\nこれには数時間かかることがあります。", 
                 orientation='h',
             )
@@ -217,7 +222,39 @@ class MainWindow:
                 self.running = False
                 self.compleate = True
                 break
-                
+    
+    def __input_check(self, win:gui.Window, value):
+        checker = [False, False, False]
+        
+        if value['pref_name'] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value['pref_name']) == None:
+            text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
+            win['pref_title'].update(text2, text_color='red')
+            win['pref_name'].update(background_color='red')
+        else:
+            text2 = "都道府県"
+            win['pref_title'].update(text2, text_color='purple')
+            win['pref_name'].update(background_color='white')
+            checker[0] = True
+            
+        if value['Big_junle'] == "":
+            win['junle_title'].update("ジャンル選択 ※選択必須です。", text_color='red')
+        else:
+            win['junle_title'].update("ジャンル選択", text_color='purple')
+            checker[1] = True
+            
+        if value['path'] == "":
+            win['path_title'].update(
+                'フォルダ選択 ※保存先が選択されていません。', text_color='red')
+            win['path'].update(background_color="red")
+        else:
+            win['path_title'].update(text_color='purple')
+            win['path'].update(background_color="white")
+            checker[2] = True
+
+        if False in checker:
+            return False
+        else:
+            return True
         
     def __compleate_popup(self, value):
         if self.detati:
@@ -237,9 +274,11 @@ class MainWindow:
                 self.window['pref_name'].update(v)
 
         if event == '抽出実行':
-            self.__process(event, value)
-            self.__compleate_popup(value)
-    
+            checker = self.__input_check(self.window, value)
+            if checker is True:
+                self.__process(value)
+                self.__compleate_popup(value)
+            
                     
     def display(self) -> None:
         """[summary]\n

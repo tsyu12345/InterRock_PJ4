@@ -143,8 +143,8 @@ def list_split(n:int, l:list) -> list:
         result.append(add)
     return result
         
-    
 
+#TODO: 自作middlewareの実行中に発生したエラーを捕捉してGUIに通知する。
 class AbsExtraction(object, metaclass=ABCMeta):
     """Summary Line:\n
     クローラーの中間処理を実装する抽象クラス。
@@ -187,6 +187,8 @@ class AbsExtraction(object, metaclass=ABCMeta):
         """
         pass
 
+
+        
 class CityUrlExtraction(AbsExtraction):
     def __init__(self):
         super(CityUrlExtraction, self).__init__()
@@ -270,7 +272,7 @@ class BigJunleExtraction(AbsExtraction):
     def quitDriver(self) -> None:
         self.driver.quit()
 
-class SmallJunleExtraction(AbsExtraction):
+class SmallJunleExtraction(AbsExtraction):#TODO:現時点だと、URLの抽出処理全部が完了しないと次のリクエストを出せないようになっているため、時間がかかる。ここで抽出したＵＲＬをscrapy.Requestで投げるようにしたら終了を待たずにクロールできるかも。
     
     def _init__(self):
         super(SmallJunleExtraction, self).__init__()
