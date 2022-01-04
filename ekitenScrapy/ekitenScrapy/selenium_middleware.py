@@ -107,41 +107,6 @@ def resource_path(relative_path):
         base_path = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
-def test_process(url_list):
-    """Summary Line:\n
-    テスト用関数
-    """
-    driver_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chromedriver.exe'
-    options = webdriver.ChromeOptions()
-    options.add_argument("start-maximized")
-    options.add_argument("enable-automation")
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-infobars")
-    options.add_argument('--disable-extensions')
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-browser-side-navigation")
-    options.add_argument("--disable-gpu")
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument('--ignore-ssl-errors')
-    prefs = {"profile.default_content_setting_values.notifications": 2}
-    options.add_experimental_option("prefs", prefs)
-    browser_path = 'C:/Users/syuku/ProdFolder/InterRock_PJ4/chrome-win/chrome.exe'
-    options.binary_location = browser_path
-    result_list = []
-    driver = webdriver.Chrome(executable_path=driver_path, options=options)
-    for url in url_list:
-        driver.get(url)
-        
-        wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
-        a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
-        for a in a_tags:
-            result_list.append(a.get_attribute('href'))
-        #for url in big_junle_url_list:
-    driver.quit()
-    return result_list
-
 
 def process_join(apply_results: list):
     """Summary Line:\n
