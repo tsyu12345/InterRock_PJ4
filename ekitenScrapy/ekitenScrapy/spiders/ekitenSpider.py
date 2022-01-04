@@ -1,5 +1,5 @@
 from subprocess import call
-from typing import Mapping
+from typing import Generator, Mapping
 from bs4.element import PreformattedString
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -68,11 +68,6 @@ class EkitenspiderSpider(scrapy.Spider):
         self.counter = counter
         self.total_count = total_count
         print("####init####")
-        #先に全体の抽出県数を検索。
-        for prefecture in self.prefecture_list:
-            pref_code = JisCode(prefecture)
-            url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
-            yield scrapy.Request(url, call_back=self.__extraction_shop_result_count, errback=self.error_parse)
         
         
     def start_requests(self):
@@ -81,9 +76,16 @@ class EkitenspiderSpider(scrapy.Spider):
         店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
         Yields:
             str: middlewareで返却された小ジャンルURL
-        """        
+        """
+        #先に全体の抽出県数を検索。
+        for prefecture in self.prefecture_list:
+            pref_code = JisCode(prefecture)
+            url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
+            scrapy.Request(url, callback=self.__extraction_shop_result_count, errback=self.error_parse)        
+        
         middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         result = middleware.run()
+        
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
      

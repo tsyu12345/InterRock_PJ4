@@ -1,4 +1,5 @@
 #Scrapy関係のインポート
+from time import time
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
 
@@ -6,6 +7,7 @@ from scrapy.utils.project import get_project_settings
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
 import sys
+import traceback
 
 #スレッド関係のインポート
 from multiprocessing import Pool, freeze_support, Manager
@@ -21,16 +23,15 @@ class SpiderCall:
         settings.set('FEED_URI', 'results_TEST.csv')
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
-        self.total_counter = maneger.Value('i', 0) #スクレイピングするサイトの総数
+        self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.process = CrawlerProcess(get_project_settings())
-        self.process.crawl('ekitenSpider', prefectures=pref_list, counter=self.counter, total_counter=self.total_counter)
+        self.process.crawl('ekitenSpider', pref_list, self.counter, self.total_counter)
         
     def reference_counter(self):
         return self.counter.value
         
     def run(self):
         self.process.start() # the script will block here until the crawling is finished
-    
 
 #GUI claases
 class AreaSelect:
@@ -117,6 +118,26 @@ class PathSelect:
         ]
         return L
 
+class ErrorWindow:
+    """[summary]\n
+    ハンドルされていない例外が発生したときのエラー画面を表示する。
+    """
+    def __init__(self, message) -> None:
+        """[summary]\n
+        Args:\n
+            message(str):例外のメッセージ\n
+        """
+        defaulf_msg = "想定されていないエラーが発生しました。\n開発者に以下のログを転送してください。\n"
+        self.msg = defaulf_msg + message #エラーメッセージ全体
+    
+    def display(self):
+        gui.popup_scrolled(
+            self.msg, 
+            title="Unknown Error",
+            size=(40, 20)
+        )
+        
+        
 def obj_frame(lay_out_data):
     """[summary]\n
     各オブジェクト群をフレームにして返す。\n
@@ -139,15 +160,18 @@ class MainWindow:
     メインウィンドウを定義する。
     """
     def __init__(self) -> None:
+        #windowの初期化。各コンポーネントの生成。
         gui.theme('BluePurple')
         self.width = 700
         self.height = 300
         self.area_menu = AreaSelect()
         self.junle_menu = BigJunleSelect()
         self.path_menu = PathSelect()
+        #状態フラグの初期化
         self.runnung = False
         self.detati = False
         self.compleate = False
+        #各コンポーネントをフレームにまとめて配置し、windowコンストラクタを生成。
         layout = self.__lay_out()
         self.window = gui.Window(
             'エキテン掲載情報 抽出ツール', 
@@ -166,42 +190,75 @@ class MainWindow:
         layout = obj_frame([frame, path_layout])
         return layout
     
+    def __process(self, value):
+        pref_list = value['pref_name'].split(",")
+        print(pref_list)
+        self.running = True
+        spider = SpiderCall(pref_list)
+        spider_process = th.Thread(target=spider.run, args=())
+        spider_process.start()
+        while self.running:
+            #ProgressDisplay process
+            progress = gui.OneLineProgressMeter(
+                "処理中です.", 
+                spider.counter.value, 
+                spider.total_counter.value, 
+                'progress', 
+                "現在抽出処理中です。\nこれには数時間かかることがあります。", 
+                orientation='h',
+            )
+            if progress is False and self.running:
+                self.running = False
+                self.detati = True
+                self.compleate = True
+                break
+            
+            if spider_process.is_alive() is False:
+                self.running = False
+                self.compleate = True
+                break
+                
+        
+    def __compleate_popup(self, value):
+        if self.detati:
+            gui.popup("処理を中断しました。", title="処理中断")
+        else:
+            gui.popup("処理が完了しました。\n保存先:" + value['path'], title="処理完了")
+    
     def __event_listener(self, event, value):
+        """[summary]\n
+        ウィンドウで発生したイベントごとの処理を呼び出す。\n
+        """
+        
         if event == 'エリア選択':
-            """
-            選択されたエリアを取得し、結果を表示する。
-            """
             selected_pref_list = self.area_menu.display()
-            display_area = ""
-            for area in selected_pref_list:
-                display_area += area + ","
-            self.window['pref_name'].update(display_area)
+            for i, area in enumerate(selected_pref_list):
+                v = area + "," if i != len(selected_pref_list) - 1 else area
+                self.window['pref_name'].update(v)
 
         if event == '抽出実行':
-            pref_list = value['pref_name'].split(",")
-            print(pref_list)
-            self.running = True
-            spider = SpiderCall(pref_list)
-            spider_process = th.Thread(target=spider.run, args=())
-            spider_process.start()
-            while self.running:
-                #ProgressDisplay process
-                gui.popup("抽出中...")
-                if spider_process.is_alive() is False:
-                    self.running = False
-                    break
+            self.__process(event, value)
+            self.__compleate_popup(value)
+    
                     
-                
     def display(self) -> None:
         """[summary]\n
         メインウィンドウを表示し、全体の流れを制御する。
         """
         while self.compleate != True:
-            event, value = self.window.read()
-            self.__event_listener(event, value) 
-            
-            if event in ("Quit", None):#Quit window
+            try:
+                event, value = self.window.read()
+                self.__event_listener(event, value) 
+                if event in ("Quit", None):#Quit window
+                    break
+            except:#エラー発生時
+                error_log = traceback.format_exc()
+                print(error_log)
+                popup = ErrorWindow(error_log)
+                popup.display()
                 break
+        
+        #終了処理
         self.window.close()
         sys.exit()
         
