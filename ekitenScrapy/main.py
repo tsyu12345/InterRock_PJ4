@@ -13,7 +13,7 @@ import traceback
 from multiprocessing import Pool, freeze_support, Manager
 import threading as th
 
-class SpiderCall:
+class SpiderCall: #TODO:中止処理の追加
     """
     Summary:\n
     Spyderを実行する。およびその関連機能の呼び出し、参照を行う。
@@ -23,6 +23,7 @@ class SpiderCall:
         junle(str): スクレイピングするジャンル\n
     """
     def __init__(self, pref_list:list, save_path:str, junle:str):
+        self.pref_list = pref_list
         settings = get_project_settings()
         settings.set('FEED_URI', save_path)
         maneger = Manager()
@@ -31,11 +32,12 @@ class SpiderCall:
         self.process = CrawlerProcess(get_project_settings())
         self.process.crawl('ekitenSpider', pref_list, self.counter, self.total_counter)
         
-        #検索総数を取得
-        count = RequestTotalCount(pref_list).get_count()
-        self.total_counter.value = count
         
     def run(self):
+        #検索総数を取得
+        count = RequestTotalCount(self.pref_list).get_count()
+        self.total_counter.value = count
+        
         self.process.start() # the script will block here until the crawling is finished
 
 #GUI claases
