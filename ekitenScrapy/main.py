@@ -36,6 +36,7 @@ class SpiderCall: #TODO:中止処理の追加
     def run(self):
         #検索総数を取得
         count = RequestTotalCount(self.pref_list).get_count()
+        print("totalCount: "+str(count))
         self.total_counter.value = count
         
         self.process.start() # the script will block here until the crawling is finished
@@ -206,10 +207,13 @@ class MainWindow:
         spider_process.start()
         while self.running:
             #ProgressDisplay process
+            total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
+            count:int = spider.counter.value if spider.counter.value < total else total - 1
+            
             progress = gui.OneLineProgressMeter(
                 "処理中です.", 
-                spider.counter.value, 
-                spider.total_counter.value, 
+                count, 
+                total, 
                 '<In Progress>', 
                 "現在抽出処理中です。\nこれには数時間かかることがあります。", 
                 orientation='h',

@@ -58,10 +58,16 @@ class RequestTotalCount:
             int: そのページ（都道府県）の検索数
         """
         soup = Soup(html, 'html.parser')
-        count_elm = soup.select_one('dl.search_result_heading_related_list > dd')
+        count_elm = soup.select_one('dl.search_result_heading_related_list > div > dd')
+        print(count_elm)
         count_str = count_elm.text if count_elm is not None else '0'
         count_str = replaceAll(count_str, ['件', ' ', ','], '')
         count = int(count_str)
         return count
-        
+
+
+if __name__ == '__main__':
+    test = RequestTotalCount(['徳島県'])
+    result = test.get_count()
+    print(result)
         
