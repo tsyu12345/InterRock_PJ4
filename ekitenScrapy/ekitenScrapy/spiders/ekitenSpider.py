@@ -54,6 +54,7 @@ class EkitenspiderSpider(scrapy.Spider):
     MAX_RRTRYCOUNT = 3
     RETEYED = 0
     CRAWLED_URL = []
+    RETRY_URL = []
     
     def __init__(self, prefectures:list, counter, total_count) -> None:
         """
@@ -103,25 +104,16 @@ class EkitenspiderSpider(scrapy.Spider):
     def error_parse(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
         scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
-        一定時間後にリトライリクエストする。\n
+        後にリトライリクエストする。\n
         Args:
             failure (scrapy.Request): scrapy.Request
         """
         print("####400 error catch####")
-        print("request waiting for 30s")
-        if self.RETEYED < self.MAX_RRTRYCOUNT:
-            print("RETRYCOUNTER:" + str(self.RETEYED))
-            yield scrapy.Request('https://www.google.com/')
-            time.sleep(30)
-            response = failure.value.response
-            print("Retry: " + response.url)
-            self.RETEYED += 1
-            return scrapy.Request(
-                response.url, 
-                callback=self.pre_parse, 
-                errback=self.error_parse, 
-                dont_filter=True)
-    
+        response = failure.value.response
+        url = response.url
+        self.RETRY_URL(url)
+        
+        
     def pre_parse(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
