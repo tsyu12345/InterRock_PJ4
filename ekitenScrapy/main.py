@@ -41,6 +41,8 @@ class SpiderCall: #TODO:中止処理の追加
         
         self.process.start() # the script will block here until the crawling is finished
 
+    def stop(self):
+        self.process.stop()
 #GUI claases
 class AreaSelect:
     """
@@ -122,7 +124,7 @@ class PathSelect:
     def lay_out(self):
         L = [
             [gui.Text("フォルダ選択", key='path_title', size=(60, None))],
-            [gui.InputText(key='path'), gui.SaveAs("選択", file_types=( [('Excelファイル','*.xlsx')]))]
+            [gui.InputText(key='path'), gui.SaveAs("選択", file_types=( [('CSV (コンマ区切り)','*.csv')]))]
         ]
         return L
 
@@ -199,6 +201,9 @@ class MainWindow:
         return layout
     
     def __process(self, value):
+        """[summary]\n
+        スパイダー実行中のプログレスバーを表示。
+        """
         pref_list = value['pref_name'].split(",")
         print(pref_list)
         self.running = True
@@ -218,10 +223,12 @@ class MainWindow:
                 "現在抽出処理中です。\nこれには数時間かかることがあります。", 
                 orientation='h',
             )
+            
             if progress is False and self.running:
                 self.running = False
                 self.detati = True
                 self.compleate = True
+                spider.stop()
                 break
             
             if spider_process.is_alive() is False:
