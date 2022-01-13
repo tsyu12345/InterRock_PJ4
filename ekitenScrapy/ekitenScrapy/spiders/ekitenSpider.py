@@ -1,6 +1,7 @@
 from subprocess import call
 from typing import Generator, Mapping
 from bs4.element import PreformattedString
+from scrapy import spiders
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -78,28 +79,13 @@ class EkitenspiderSpider(scrapy.Spider):
         Yields:
             str: middlewareで返却された小ジャンルURL
         """
-        #先に全体の抽出県数を検索。
-        for prefecture in self.prefecture_list:
-            pref_code = JisCode(prefecture)
-            url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
-            scrapy.Request(url, callback=self.__extraction_shop_result_count, errback=self.error_parse)        
         
         middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         result = middleware.run()
         
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-     
-    def __extraction_shop_result_count(self, response):
-        """[summary]\n
-        店舗検索の予測総数を取得し、共有メモリの変数に反映する。 \n   
-        Args:\n
-            response (scrapy.Request): scrapy.Request\n
-        """
-        counter = response.css('dl.search_result_heading_related_list > div > dd::text').extract_first()
-        print(counter)
-        self.total_count.value = int(counter)
-        
+          
         
     def error_parse(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
@@ -111,9 +97,28 @@ class EkitenspiderSpider(scrapy.Spider):
         print("####400 error catch####")
         response = failure.value.response
         url = response.url
-        self.RETRY_URL(url)
+        self.RETRY_URL.append(url)
         
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(EkitenspiderSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=spider.spider_closed)
+        return spider
         
+    def spider_closed(self, spider):
+        """[summary]\n
+        spiderが終了した際に呼ばれる。\n
+        RETRY_URL内のURLを再クロールする。\n
+        """
+        print("####spider closed####")
+        if len(self.RETRY_URL) > 0:
+            print("####retry####")
+            for url in self.RETRY_URL:
+                if "shop_" in url:#shop_idが含まれているURLの場合。
+                    yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
+                else:
+                    yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
+    
     def pre_parse(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
@@ -143,6 +148,7 @@ class EkitenspiderSpider(scrapy.Spider):
             print(next_page_url)
             yield scrapy.Request(next_page_url, callback=self.pre_parse, errback=self.error_parse)
         
+        #
             
     def parse(self, response):
         """
