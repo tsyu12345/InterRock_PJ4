@@ -29,8 +29,9 @@ class SpiderCall: #TODO:中止処理の追加
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
+        self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.process = CrawlerProcess(get_project_settings())
-        self.process.crawl('ekitenSpider', pref_list, self.counter, self.total_counter)
+        self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg)
         
         
     def run(self):
