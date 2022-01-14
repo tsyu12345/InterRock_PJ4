@@ -4,7 +4,12 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings 
 from scrapy.statscollectors import StatsCollector
 from RequestTotalCount import RequestTotalCount
-#from twisted.internet import reactor
+
+from twisted.internet import reactor
+import scrapy
+from scrapy.crawler import CrawlerRunner
+from scrapy.utils.log import configure_logging
+from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
 #GUI関係のインポート
 import PySimpleGUI as gui
@@ -16,8 +21,32 @@ import traceback
 from multiprocessing import Pool, freeze_support, Manager
 import threading as th
 
+class SpiderExecute:
+    """[summary]\n
+    CrawlerRunnerでのSpider実行クラス。
+    Args:\n
+        pref_list(list[str]): 都道府県のリスト\n
+        save_path(str): スクレイピング結果の保存先\n
+        junle(str): スクレイピングするジャンル\n
+    """
+    def __init__(self,pref_list:list, save_path:str, junle:str) -> None:
+        self.pref_list = pref_list
+        settings = get_project_settings()
+        settings.set('FEED_URI', save_path)
+        maneger = Manager()
+        self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
+        self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
+        self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
+        self.end_flg = maneger.Value('b', False) #中断のフラグ
+        self.runner = CrawlerRunner(settings)
+    
+    def crawl_start(self):
+        self.runner.crawl('EkitenspiderSpider', pref_list=self.pref_list, counter=self.counter, total_counter=self.total_counter, loading_flg=self.loading_flg, end_flg=self.end_flg)
+        
+    
 class SpiderCall: #TODO:中止処理の追加
     """
+    旧スパイダー実行クラス！！。現在はRunnnerでの構築中。
     Summary:\n
     Spyderを実行する。およびその関連機能の呼び出し、参照を行う。
     Args:\n
@@ -34,7 +63,7 @@ class SpiderCall: #TODO:中止処理の追加
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
-        self.process = CrawlerProcess(get_project_settings())
+        self.process = CrawlerProcess(settings)
         self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg, self.end_flg)
         
     def run(self):
