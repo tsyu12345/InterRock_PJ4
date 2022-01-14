@@ -8,6 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import scrapy
+from scrapy.exceptions import CloseSpider
+import threading as th
 import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
@@ -58,7 +60,7 @@ class EkitenspiderSpider(scrapy.Spider):
     CRAWLED_URL = []
     RETRY_URL = []
     
-    def __init__(self, prefectures:list, counter, loading_flg) -> None:
+    def __init__(self, prefectures:list, counter, loading_flg, end_flg) -> None:
         """
         Summary Lines\n
         初期化処理。対象都道府県とジャンルを指定する。\n
@@ -66,13 +68,27 @@ class EkitenspiderSpider(scrapy.Spider):
             prefectures (list): 対象都道府県のリスト\n
             counter (Maneger.Value('i', 0)): 処理済み数を格納する共有メモリ変数\n
             loading_flg (Manager.Value('b', False)): ローディング中かどうかを格納する共有メモリ変数\n
+            end_flg (Manager.Value('b', False)): 中断時のフラグを格納する共有メモリ変数\n
         """
         self.prefecture_list:list = prefectures 
         self.counter = counter
         self.loading_flg = loading_flg
+        self.end_flg = end_flg
+        self.middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         print("####init####")
-        
-        
+    
+    def __stop_spider(self):
+        """
+        [summary]\n 
+        中断フラグがTrueになるか別スレッドで監視する。
+        """
+        while True:
+            if self.end_flg.value == True:
+                self.middleware.stop()
+                raise CloseSpider("spider cancelled")
+
+
+    
     def start_requests(self):
         """
         Summary Lines
@@ -80,9 +96,11 @@ class EkitenspiderSpider(scrapy.Spider):
         Yields:
             str: middlewareで返却された小ジャンルURL
         """
-        self.loading_flg = True
-        middleware = SeleniumMiddlewares(self.prefecture_list, 4)
-        result = middleware.run()
+        visor = th.Thread(target=self.__stop_spider)
+        visor.start()
+        self.loading_flg.value = True
+        
+        result = self.middleware.run()
         
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
@@ -95,7 +113,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Args:
             failure (scrapy.Request): scrapy.Request
         """
-        self.loading_flg = True
+        self.loading_flg.value = True
         print("####400 error catch####")
         response = failure.value.response
         url = response.url
@@ -120,7 +138,7 @@ class EkitenspiderSpider(scrapy.Spider):
                     yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
                 else:
                     yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-        self.loading_flg = False
+        self.loading_flg.value = False
     
     def pre_parse(self, response):
         """Summary Lines
@@ -132,7 +150,7 @@ class EkitenspiderSpider(scrapy.Spider):
             scrapy.Request: スクレイピング先URL
         """
         #self.start_urls = self.search(response)
-        self.loading_flg = True
+        self.loading_flg.value = True
         print(type(response.status))
         self.RETEYED = 0 #成功したらリトライカウントをリセット
         for elm in response.css('div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a'):
@@ -161,7 +179,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Args:
             response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト
         """
-        self.loading_flg = False
+        self.loading_flg.value = False
         item = EkitenscrapyItem()
         print("#####parse#####")
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル

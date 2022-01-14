@@ -353,7 +353,14 @@ class SeleniumMiddlewares():
         result = self.__join_process(apply_results)
         print(result)
         return result
+    
+    def stop(self):
+        """[summary]\n 
+        動作を停止させる。
+        """
         
+        self.p.terminate()
+    
     def __join_process(self, apply_results:list) -> list:
         """[summary]\n
         各並列処理の戻り値をまとめる。\n

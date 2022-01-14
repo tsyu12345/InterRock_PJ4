@@ -2,7 +2,10 @@
 from time import time
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
+from scrapy.statscollectors import StatsCollector
 from RequestTotalCount import RequestTotalCount
+#from twisted.internet import reactor
+
 #GUI関係のインポート
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
@@ -30,9 +33,9 @@ class SpiderCall: #TODO:中止処理の追加
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
+        self.end_flg = maneger.Value('b', False) #中断のフラグ
         self.process = CrawlerProcess(get_project_settings())
-        self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg)
-        
+        self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg, self.end_flg)
         
     def run(self):
         #検索総数を取得
@@ -43,7 +46,8 @@ class SpiderCall: #TODO:中止処理の追加
         self.process.start() # the script will block here until the crawling is finished
 
     def stop(self):
-        self.process.stop()
+        self.end_flg.value = True
+        
 #GUI claases
 class AreaSelect:
     """
@@ -212,6 +216,8 @@ class MainWindow:
         spider_process = th.Thread(target=spider.run, args=())
         spider_process.start()
         while self.running:
+            if spider.loading_flg.value:
+                gui.popup_animated("icon_loader_a_bb_01_s1.gif", "ただいま待機中です。\nしばらくお待ちください",time_between_frames=60, keep_on_top=False)
             #ProgressDisplay process
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
             count:int = spider.counter.value if spider.counter.value < total else total - 1
