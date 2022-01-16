@@ -96,7 +96,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Yields:
             str: middlewareで返却された小ジャンルURL
         """
-        visor = th.Thread(target=self.__stop_spider)
+        visor = th.Thread(target=self.__stop_spider, daemon=True)
         visor.start()
         self.loading_flg.value = True
         

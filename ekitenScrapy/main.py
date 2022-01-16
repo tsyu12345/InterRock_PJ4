@@ -4,12 +4,12 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings 
 from scrapy.statscollectors import StatsCollector
 from RequestTotalCount import RequestTotalCount
-
+import pathlib
 from twisted.internet import reactor
 import scrapy
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.log import configure_logging
-from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
+#from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
 #GUI関係のインポート
 import PySimpleGUI as gui
@@ -31,19 +31,48 @@ class SpiderExecute:
     """
     def __init__(self,pref_list:list, save_path:str, junle:str) -> None:
         self.pref_list = pref_list
+        
         settings = get_project_settings()
-        settings.set('FEED_URI', save_path)
+        FEEDS = {
+            'items.json': {
+                'format': 'json',
+                'encoding': 'utf8',
+                'store_empty': False,
+                'fields': None,
+                'indent': 4,
+                'item_export_kwargs': {
+                'export_empty_fields': True,
+                },
+            },
+            '/home/user/documents/items.xml': {
+                'format': 'xml',
+                'fields': ['name', 'price'],
+                'encoding': 'latin1',
+                'indent': 8,
+            },
+            pathlib.Path(save_path): {
+                'format': 'csv',
+                'fields': ['price', 'name'],
+            },
+        }
+        #settings.set('FEEDS', save_path)
+        #settings.set('FEED_FORMAT', 'csv')
+        
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
-        self.runner = CrawlerRunner(settings)
+        
+        self.runner = CrawlerRunner(settings=FEEDS)
     
     def crawl_start(self):
-        self.runner.crawl('EkitenspiderSpider', pref_list=self.pref_list, counter=self.counter, total_counter=self.total_counter, loading_flg=self.loading_flg, end_flg=self.end_flg)
+        self.runner.crawl('ekitenSpider', pref_list=self.pref_list, counter=self.counter, total_counter=self.total_counter, loading_flg=self.loading_flg, end_flg=self.end_flg)
         
-    
+    def crawl_stop(self):
+        r_v = self.runner.stop()
+        print(r_v)
+        
 class SpiderCall: #TODO:中止処理の追加
     """
     旧スパイダー実行クラス！！。現在はRunnnerでの構築中。
@@ -236,13 +265,13 @@ class MainWindow:
     
     def __process(self, value):
         """[summary]\n
-        スパイダー実行中のプログレスバーを表示。
+        スパイダー呼び出し、スパイダー実行中のプログレスバーを表示。
         """
         pref_list = value['pref_name'].split(",")
         print(pref_list)
         self.running = True
-        spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
-        spider_process = th.Thread(target=spider.run, args=())
+        spider = SpiderExecute(pref_list, value['path'], value['Big_junle'])
+        spider_process = th.Thread(target=spider.crawl_start, args=(), daemon=True)
         spider_process.start()
         while self.running:
             if spider.loading_flg.value:
@@ -264,7 +293,7 @@ class MainWindow:
                 self.running = False
                 self.detati = True
                 self.compleate = True
-                spider.stop()
+                spider.crawl_stop()
                 break
             
             if spider_process.is_alive() is False:
