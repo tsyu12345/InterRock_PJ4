@@ -9,7 +9,7 @@ from twisted.internet import reactor
 import scrapy
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.log import configure_logging
-#from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
+from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
 #GUI関係のインポート
 import PySimpleGUI as gui
@@ -64,10 +64,10 @@ class SpiderExecute:
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
         
-        self.runner = CrawlerRunner(settings=FEEDS)
+        self.runner = CrawlerRunner(settings=None)
     
     def crawl_start(self):
-        self.runner.crawl('ekitenSpider', pref_list=self.pref_list, counter=self.counter, total_counter=self.total_counter, loading_flg=self.loading_flg, end_flg=self.end_flg)
+        self.runner.crawl(EkitenspiderSpider(self.pref_list, self.counter, self.total_counter, self.loading_flg, self.end_flg))
         
     def crawl_stop(self):
         r_v = self.runner.stop()
@@ -270,8 +270,8 @@ class MainWindow:
         pref_list = value['pref_name'].split(",")
         print(pref_list)
         self.running = True
-        spider = SpiderExecute(pref_list, value['path'], value['Big_junle'])
-        spider_process = th.Thread(target=spider.crawl_start, args=(), daemon=True)
+        spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
+        spider_process = th.Thread(target=spider.run, args=(), daemon=True)
         spider_process.start()
         while self.running:
             if spider.loading_flg.value:

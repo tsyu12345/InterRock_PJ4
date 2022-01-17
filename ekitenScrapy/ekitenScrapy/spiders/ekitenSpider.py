@@ -115,9 +115,15 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         self.loading_flg.value = True
         print("####400 error catch####")
+        time.sleep(500)#5分ほど待つ
         response = failure.value.response
         url = response.url
-        self.RETRY_URL.append(url)
+        if "shop_" in url:#shop_idが含まれているURLの場合。
+            yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
+        else:
+            yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
+        #yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
+        #self.RETRY_URL.append(url)
         
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):

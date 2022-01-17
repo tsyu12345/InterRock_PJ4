@@ -11,3 +11,5 @@ chrome-win
 venv
 *.xlsx
 run_test.xlsx
+build
+dist
