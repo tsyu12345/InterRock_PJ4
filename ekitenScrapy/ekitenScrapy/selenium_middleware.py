@@ -272,8 +272,9 @@ class BigJunleExtraction(AbsExtraction):
     def quitDriver(self) -> None:
         self.driver.quit()
 
-class SmallJunleExtraction(AbsExtraction):#TODO:現時点だと、URLの抽出処理全部が完了しないと次のリクエストを出せないようになっているため、時間がかかる。ここで抽出したＵＲＬをscrapy.Requestで投げるようにしたら終了を待たずにクロールできるかも。
-    
+class SmallJunleExtraction(AbsExtraction):
+    #TODO:現時点だと、URLの抽出処理全部が完了しないと次のリクエストを出せないようになっているため、時間がかかる。ここで抽出したＵＲＬをscrapy.Requestで投げるようにしたら終了を待たずにクロールできるかも。
+    #TODO:GUI側で中止処理したときにdriver,browserを終了させるようにする。
     def _init__(self):
         super(SmallJunleExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)

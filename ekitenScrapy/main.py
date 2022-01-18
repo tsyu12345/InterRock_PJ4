@@ -107,6 +107,33 @@ class SpiderCall: #TODO:中止処理の追加
         self.end_flg.value = True
         
 #GUI claases
+
+class LoadingAnimation:
+    """[summary]\n
+    クロール待機中や、サーバーブロック発生時の待機期間中にローディングアニメーションを表示させる。\n
+    """
+    
+    def __init__(self,gif_path, msg) -> None:
+        self.animation_gif = gif_path 
+        self.msg = msg
+        self.close_flg = False
+        
+    def __lay_out(self):
+        L = [
+            [gui.Image(source=self.animation_gif, key='loading', )],
+            [gui.Text(self.msg, key='msg')],
+        ]
+        return L
+        
+    def display(self):
+        window = gui.Window('リクエスト待機中…', layout=self.__lay_out())
+        while True:
+            event, value = window.read()
+            if self.close_flg:
+                break
+        window.close()
+            
+
 class AreaSelect:
     """
     Summary:\n
@@ -240,6 +267,10 @@ class MainWindow:
         self.area_menu = AreaSelect()
         self.junle_menu = BigJunleSelect()
         self.path_menu = PathSelect()
+        self.loading_window = LoadingAnimation(
+            'icon_loader_a_bb_01_s1.gif',
+            '現在リクエスト待機中です。しばらくお待ちください。'
+        )
         #状態フラグの初期化
         self.runnung = False
         self.detati = False
@@ -275,7 +306,8 @@ class MainWindow:
         spider_process.start()
         while self.running:
             if spider.loading_flg.value:
-                gui.popup_animated("icon_loader_a_bb_01_s1.gif", "ただいま待機中です。\nしばらくお待ちください",time_between_frames=60, keep_on_top=False)
+                self.loading_window.display()
+                #gui.popup_animated("c", "ただいま待機中です。\nしばらくお待ちください",time_between_frames=60, keep_on_top=False)
             #ProgressDisplay process
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
             count:int = spider.counter.value if spider.counter.value < total else total - 1

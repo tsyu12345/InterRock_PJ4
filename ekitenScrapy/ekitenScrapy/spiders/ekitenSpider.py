@@ -81,11 +81,12 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         [summary]\n 
         中断フラグがTrueになるか別スレッドで監視する。
+        #このやり方は正直びみょい。
         """
         while True:
             if self.end_flg.value == True:
                 self.middleware.stop()
-                raise CloseSpider("spider cancelled")
+                raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
 
 
     
@@ -124,27 +125,6 @@ class EkitenspiderSpider(scrapy.Spider):
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
         #yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
         #self.RETRY_URL.append(url)
-        
-    @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
-        spider = super(EkitenspiderSpider, cls).from_crawler(crawler, *args, **kwargs)
-        crawler.signals.connect(spider.spider_closed, signal=spider.spider_closed)
-        return spider
-        
-    def spider_closed(self, spider):
-        """[summary]\n
-        spiderが終了した際に呼ばれる。\n
-        RETRY_URL内のURLを再クロールする。\n
-        """
-        print("####spider closed####")
-        if len(self.RETRY_URL) > 0:
-            print("####retry####")
-            for url in self.RETRY_URL:
-                if "shop_" in url:#shop_idが含まれているURLの場合。
-                    yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
-                else:
-                    yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-        self.loading_flg.value = False
     
     def pre_parse(self, response):
         """Summary Lines
@@ -179,6 +159,7 @@ class EkitenspiderSpider(scrapy.Spider):
         #
             
     def parse(self, response):
+        #TODO:未抽出項目の追加、修正。
         """
         Summary Lines
         本スクレイピング処理。店舗のページにアクセスして情報をitemsに格納する。
