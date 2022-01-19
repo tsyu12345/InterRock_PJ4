@@ -121,15 +121,24 @@ class LoadingAnimation:
     def __lay_out(self):
         L = [
             [gui.Image(source=self.animation_gif, key='loading', )],
+            [gui.OneLineProgressMeter( 
+                "処理中です.", 
+                1, 10, 
+                '<In Progress>', 
+                "現在抽出処理中です。\nこれには数時間かかることがあります。", 
+                orientation='h',)
+            ]
             [gui.Text(self.msg, key='msg')],
         ]
         return L
         
     def display(self):
-        window = gui.Window('リクエスト待機中…', layout=self.__lay_out())
+        window = gui.Window('リクエスト待機中…', layout=self.__lay_out(),)
         while True:
             event, value = window.read()
-            if self.close_flg:
+            #window.FindElement('loading').UpdateAnimation(self.animation_gif, time_between_frames=100)
+            
+            if self.close_flg or event == gui.WIN_CLOSED:
                 break
         window.close()
             
@@ -301,17 +310,24 @@ class MainWindow:
         pref_list = value['pref_name'].split(",")
         print(pref_list)
         self.running = True
+        """各種デーモンスレッドの設定"""
+        #spiderの設置
         spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
         spider_process = th.Thread(target=spider.run, args=(), daemon=True)
+        #ローディングアニメーション用
+        loading_window_process = th.Thread(target=self.loading_window.display, args=(), daemon=True)
+        #spider実行
         spider_process.start()
+        
         while self.running:
             if spider.loading_flg.value:
                 self.loading_window.display()
+                #loading_window_process.start()
                 #gui.popup_animated("c", "ただいま待機中です。\nしばらくお待ちください",time_between_frames=60, keep_on_top=False)
             #ProgressDisplay process
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
             count:int = spider.counter.value if spider.counter.value < total else total - 1
-            
+            """
             progress = gui.OneLineProgressMeter(
                 "処理中です.", 
                 count, 
@@ -327,7 +343,7 @@ class MainWindow:
                 self.compleate = True
                 spider.crawl_stop()
                 break
-            
+            """
             if spider_process.is_alive() is False:
                 self.running = False
                 self.compleate = True
