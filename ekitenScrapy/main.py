@@ -112,34 +112,56 @@ class LoadingAnimation:
     """[summary]\n
     クロール待機中や、サーバーブロック発生時の待機期間中にローディングアニメーションを表示させる。\n
     """
+    Y:float = 0.0
+    X:float = 50.0
     
-    def __init__(self,gif_path, msg) -> None:
+    def __init__(self, gif_path:str, msg:str, position:tuple=((X,0),(Y, 0))) -> None:
+        """[summary]\n
+        コンストラクタ。\n
+        素材のPath,表示位置を指定してインスタンスを生成する。\n
+        Args:\n
+            gif_path (str): 素材のPath\ns
+            msg (str): 表示するメッセージ\n
+            position (tuple, optional): 画像表示位置,position:relative;. Defaults to ((X, Y)).\n
+            param:X = 50\n
+            param:Y = 0\ns
+        """
         self.animation_gif = gif_path 
         self.msg = msg
-        self.close_flg = False
+        self.pad = position
         
-    def __lay_out(self):
+    def __lay_out(self) -> list:
+        """[summary]\n
+        レイアウトの定義。\n
+        Returns:\n
+            list: GUIレイアウトの２次元配列
+        """
         L = [
-            [gui.Image(source=self.animation_gif, key='loading', )],
-            [gui.OneLineProgressMeter( 
-                "処理中です.", 
-                1, 10, 
-                '<In Progress>', 
-                "現在抽出処理中です。\nこれには数時間かかることがあります。", 
-                orientation='h',)
-            ]
+            [gui.Image(key='loading',pad=self.pad, size=(50,50))],
             [gui.Text(self.msg, key='msg')],
         ]
         return L
         
-    def display(self):
-        window = gui.Window('リクエスト待機中…', layout=self.__lay_out(),)
+    def display(self, close_flg:any) -> None:
+        """[summary]\n
+        ローディングGUIを表示する。\n
+        args:\n
+            close_flg (ValueProxy[bool]): 中断フラグ\n
+        """
+        window = gui.Window(
+            'リクエスト待機中…', 
+            layout=self.__lay_out(),
+            no_titlebar=True
+        )
+        #take image element
+        img:gui.Image = window['loading']
+        
         while True:
-            event, value = window.read()
-            #window.FindElement('loading').UpdateAnimation(self.animation_gif, time_between_frames=100)
-            
-            if self.close_flg or event == gui.WIN_CLOSED:
+            event, value = window.read(timeout=60)
+            img.update_animation([self.animation_gif], 60)
+            if close_flg.value == False or event in (None, 'Exit', 'Cancel'):
                 break
+            
         window.close()
             
 
@@ -243,7 +265,7 @@ class ErrorWindow:
         gui.popup_scrolled(
             self.msg, 
             title="Unknown Error",
-            size=(40, 20)
+            text_color="red",
         )
         
         
@@ -270,7 +292,7 @@ class MainWindow:
     """
     def __init__(self) -> None:
         #windowの初期化。各コンポーネントの生成。
-        gui.theme('BluePurple')
+        gui.theme('DefaultNoMoreNagging')
         self.width = 700
         self.height = 300
         self.area_menu = AreaSelect()
@@ -278,7 +300,7 @@ class MainWindow:
         self.path_menu = PathSelect()
         self.loading_window = LoadingAnimation(
             'icon_loader_a_bb_01_s1.gif',
-            '現在リクエスト待機中です。しばらくお待ちください。'
+            '現在クローリング待機中です。\nしばらくお待ちください。'
         )
         #状態フラグの初期化
         self.runnung = False
@@ -315,19 +337,19 @@ class MainWindow:
         spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
         spider_process = th.Thread(target=spider.run, args=(), daemon=True)
         #ローディングアニメーション用
-        loading_window_process = th.Thread(target=self.loading_window.display, args=(), daemon=True)
+        #loading_window_process = th.Thread(target=self.loading_window.display, args=(spider.loading_flg), daemon=True)
         #spider実行
         spider_process.start()
         
         while self.running:
+            
             if spider.loading_flg.value:
-                self.loading_window.display()
-                #loading_window_process.start()
-                #gui.popup_animated("c", "ただいま待機中です。\nしばらくお待ちください",time_between_frames=60, keep_on_top=False)
-            #ProgressDisplay process
+                self.loading_window.display(spider.loading_flg)     
+            """ProgressDisplay process"""
+            #カウンタ変数の取得
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
             count:int = spider.counter.value if spider.counter.value < total else total - 1
-            """
+            #プログレスバーの表示
             progress = gui.OneLineProgressMeter(
                 "処理中です.", 
                 count, 
@@ -337,13 +359,14 @@ class MainWindow:
                 orientation='h',
             )
             
+            #中断フラグの可否
             if progress is False and self.running:
                 self.running = False
                 self.detati = True
                 self.compleate = True
-                spider.crawl_stop()
+                spider.stop()
                 break
-            """
+            
             if spider_process.is_alive() is False:
                 self.running = False
                 self.compleate = True
