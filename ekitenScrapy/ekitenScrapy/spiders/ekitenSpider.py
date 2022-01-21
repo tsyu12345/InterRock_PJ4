@@ -99,6 +99,7 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         visor = th.Thread(target=self.__stop_spider, daemon=True)
         visor.start()
+        
         self.loading_flg.value = True
         
         result = self.middleware.run()

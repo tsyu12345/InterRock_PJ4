@@ -1,4 +1,5 @@
 #Scrapy関係のインポート
+from pydoc import visiblename
 from time import time
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
@@ -113,7 +114,7 @@ class LoadingAnimation:
     クロール待機中や、サーバーブロック発生時の待機期間中にローディングアニメーションを表示させる。\n
     """
     Y:float = 0.0
-    X:float = 50.0
+    X:float = 60.0
     
     def __init__(self, gif_path:str, msg:str, position:tuple=((X,0),(Y, 0))) -> None:
         """[summary]\n
@@ -129,6 +130,11 @@ class LoadingAnimation:
         self.animation_gif = gif_path 
         self.msg = msg
         self.pad = position
+        self.window = gui.Window(
+            'リクエスト待機中…', 
+            layout=self.__lay_out(),
+            no_titlebar=True,
+        )
         
     def __lay_out(self) -> list:
         """[summary]\n
@@ -148,23 +154,22 @@ class LoadingAnimation:
         args:\n
             close_flg (ValueProxy[bool]): 中断フラグ\n
         """
-        window = gui.Window(
-            'リクエスト待機中…', 
-            layout=self.__lay_out(),
-            no_titlebar=True
-        )
+        
         #take image element
-        img:gui.Image = window['loading']
+        img:gui.Image = self.window['loading']
         
         while True:
-            event, value = window.read(timeout=60)
+            event, value = self.window.read(timeout=60)
             img.update_animation([self.animation_gif], 60)
             if close_flg.value == False or event in (None, 'Exit', 'Cancel'):
-                break
-            
-        window.close()
-            
-
+                self.window['loading'].update(visible=False)
+    
+    def disable_animation(self):
+        """[summary]\n
+        ローディングアニメーションのプロセスを終了させる。\n
+        これ以降は、GUIを再表示できない。\n
+        """
+        self.window.close()
 class AreaSelect:
     """
     Summary:\n
@@ -311,7 +316,8 @@ class MainWindow:
         self.window = gui.Window(
             'エキテン掲載情報 抽出ツール', 
             layout=layout, 
-            icon='1258d548c5548ade5fb2061f64686e40_xxo.ico'
+            icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
+            debugger_enabled=True,
         )
     
     def __lay_out(self) -> list:
@@ -337,14 +343,18 @@ class MainWindow:
         spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
         spider_process = th.Thread(target=spider.run, args=(), daemon=True)
         #ローディングアニメーション用
-        #loading_window_process = th.Thread(target=self.loading_window.display, args=(spider.loading_flg), daemon=True)
+        """
+        loading_window_process = th.Thread(
+            target=self.loading_window.display, 
+            args=([spider.loading_flg]), 
+            daemon=True
+        )
+        """
         #spider実行
         spider_process.start()
-        
+        #loading_window_process.start()
         while self.running:
-            
-            if spider.loading_flg.value:
-                self.loading_window.display(spider.loading_flg)     
+            self.loading_window.display(spider.loading_flg)
             """ProgressDisplay process"""
             #カウンタ変数の取得
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
@@ -365,14 +375,16 @@ class MainWindow:
                 self.detati = True
                 self.compleate = True
                 spider.stop()
+                self.loading_window.disable_animation()
                 break
             
             if spider_process.is_alive() is False:
                 self.running = False
                 self.compleate = True
+                self.loading_window.disable_animation()
                 break
     
-    def __input_check(self, win:gui.Window, value):
+    def __input_check(self, win:gui.Window, value):#TODO:self.windowを引数にしているので、これはいらないかも。
         checker = [False, False, False]
         
         if value['pref_name'] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value['pref_name']) == None:
