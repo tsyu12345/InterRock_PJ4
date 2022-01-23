@@ -158,18 +158,14 @@ class LoadingAnimation:
         #take image element
         img:gui.Image = self.window['loading']
         
-        while True:
-            event, value = self.window.read(timeout=60)
-            img.update_animation([self.animation_gif], 60)
-            if close_flg.value == False or event in (None, 'Exit', 'Cancel'):
-                self.window['loading'].update(visible=False)
+        
+        event, value = self.window.read(timeout=60)
+        img.update_animation([self.animation_gif], 60)
+        
+        if close_flg.value == False or event in (None, 'Exit', 'Cancel'):
+            self.window.close()     
     
-    def disable_animation(self):
-        """[summary]\n
-        ローディングアニメーションのプロセスを終了させる。\n
-        これ以降は、GUIを再表示できない。\n
-        """
-        self.window.close()
+        
 class AreaSelect:
     """
     Summary:\n
@@ -303,10 +299,6 @@ class MainWindow:
         self.area_menu = AreaSelect()
         self.junle_menu = BigJunleSelect()
         self.path_menu = PathSelect()
-        self.loading_window = LoadingAnimation(
-            'icon_loader_a_bb_01_s1.gif',
-            '現在クローリング待機中です。\nしばらくお待ちください。'
-        )
         #状態フラグの初期化
         self.runnung = False
         self.detati = False
@@ -331,7 +323,7 @@ class MainWindow:
         layout = obj_frame([frame, path_layout])
         return layout
     
-    def __process(self, value):
+    def __process(self, value, event):
         """[summary]\n
         スパイダー呼び出し、スパイダー実行中のプログレスバーを表示。
         """
@@ -343,15 +335,20 @@ class MainWindow:
         spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
         spider_process = th.Thread(target=spider.run, args=(), daemon=True)
         #ローディングアニメーション用
-        loading_window_process = th.Thread(
-            target=self.loading_window.display, 
-            args=([spider.loading_flg]), 
-            daemon=True
-        )
+        
         #spider実行
         spider_process.start()
-        loading_window_process.start()
+        
         while self.running:
+            e, v = self.window.read(timeout=10, timeout_key='-timeoutEvent-')
+            if e == '-timeoutEvent-' and spider.loading_flg:
+                loading_animetion = LoadingAnimation(
+                    'icon_loader_a_bb_01_s1.gif',
+                    'クロール待機中です。'
+                )
+                loading_animetion.display(spider.loading_flg)
+            
+            
             """ProgressDisplay process"""
             #カウンタ変数の取得
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
@@ -365,20 +362,20 @@ class MainWindow:
                 "現在抽出処理中です。\nこれには数時間かかることがあります。", 
                 orientation='h',
             )
-            
             #中断フラグの可否
             if progress is False and self.running:
                 self.running = False
                 self.detati = True
                 self.compleate = True
                 spider.stop()
-                self.loading_window.disable_animation()
+                
                 break
+                
             
             if spider_process.is_alive() is False:
                 self.running = False
                 self.compleate = True
-                self.loading_window.disable_animation()
+                
                 break
     
     def __input_check(self, win:gui.Window, value):#TODO:self.windowを引数にしているので、これはいらないかも。
@@ -434,7 +431,7 @@ class MainWindow:
         if event == '抽出実行':
             checker = self.__input_check(self.window, value)
             if checker is True:
-                self.__process(value)
+                self.__process(value, event)
                 self.__compleate_popup(value)
             
                     
@@ -445,7 +442,8 @@ class MainWindow:
         while self.compleate != True:
             try:
                 event, value = self.window.read()
-                self.__event_listener(event, value) 
+                self.__event_listener(event, value)
+                
                 if event in ("Quit", None):#Quit window
                     break
             except:#エラー発生時
