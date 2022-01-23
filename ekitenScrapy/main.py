@@ -343,18 +343,15 @@ class MainWindow:
         spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
         spider_process = th.Thread(target=spider.run, args=(), daemon=True)
         #ローディングアニメーション用
-        """
         loading_window_process = th.Thread(
             target=self.loading_window.display, 
             args=([spider.loading_flg]), 
             daemon=True
         )
-        """
         #spider実行
         spider_process.start()
-        #loading_window_process.start()
+        loading_window_process.start()
         while self.running:
-            self.loading_window.display(spider.loading_flg)
             """ProgressDisplay process"""
             #カウンタ変数の取得
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
