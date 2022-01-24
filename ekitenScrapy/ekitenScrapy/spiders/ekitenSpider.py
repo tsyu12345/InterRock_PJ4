@@ -1,6 +1,7 @@
-from os import truncate
+from os import access, truncate
 from subprocess import call
 from typing import Generator, Mapping
+from warnings import catch_warnings
 from bs4.element import PreformattedString
 from scrapy import spiders
 from selenium import webdriver
@@ -321,24 +322,38 @@ class EkitenspiderSpider(scrapy.Spider):
         item['introduce'] = introduction_elm if introduction_elm is not None else None #店舗紹介
         print(item['introduce'])
         
+        score_elm = response.css('div.layout_media_wide > div.p-shop_header_rating > span.tooltip_trigger::text').extract_first()
+        item['evaluation_score'] =  score_elm if score_elm  is not None else None #評価点
+        print(item['evaluation_score'])
+        
+        review_cnt_elm = response.css('div.icon_wrapper > span.icon_wrapper_text > a.js-smooth_scroll_exception_floating::text').extract_first()
+        item['review_count'] = review_cnt_elm  if review_cnt_elm is not None else None #レビュー件数
+        print(item['review_count'])
+        
+        img_cnt_elm = response.css('nav.p-shop_detail_nav navigation js_shop_navigation js_floating_target > ul > li.photo > span.p-shop_detail_nav_label_num::text').extract_first()
+        item['image_count'] = img_cnt_elm if img_cnt_elm is not None else None #画像件数
+        print(item['image_count']) 
+        
+        access_info_elm = response.css('p-shop_header_access > div.icon_wrapper > span.tooltip p-shop_header_access_root > span.tooltip_trigger::text').extract_first()
+        item['access_info'] = access_info_elm if access_info_elm is not None else None #アクセス情報
+        print(item['access_info'])
+        
+        catch_cp_elm = response.css('p-shop_introduction_content js_toggle_content > div.p-shop_introduction_title::text').extract_first()
+        item['catch_cp'] = catch_cp_elm if catch_cp_elm is not None else None #キャッチコピー
+        print(item['catch_cp'])
+        
+        item['is_official'] = self.__is_official(response) #公式店舗       
+        print(item['is_official'])
+        
         self.counter.value += 1
+        
         """
         scraping items below
         item['store_big_junle'] =  #大ジャンル
-        
-        item['catch_cp'] =  #キャッチコピー
-        item['is_official'] =  #公式店かどうか
-        item['evaluation_score'] =  #評価点
-        item['review_count'] =  #レビュー件数
-        item['image_count'] =  #画像件数
-        item['access_info'] =  #アクセス情報
-        
         item['latitude'] =  #緯度
         item['longitude'] =  #経度
         item['closest_station'] =  #最寄り駅
-       
-        
-    """
+        """
     
     def __extraction_work_time(self, response):
         """[summary]\n
@@ -373,7 +388,7 @@ class EkitenspiderSpider(scrapy.Spider):
             公式店:"●"\n
             それ以外:""\n
         """
-        offucial_elm = response.css('span.tag_icon official tooltip_trigger').extract_first()
+        offucial_elm = response.css('div.p-shop_header_catch_container > span.tag_icon official tooltip_trigger::text').extract_first()
         if offucial_elm is not None:
             return "●"
         else:
@@ -455,9 +470,11 @@ class EkitenspiderSpider(scrapy.Spider):
         
         if near_store_elm is None:
             result = "月額5000円"
-        elif profile_photo_elm is None:
+        
+        if profile_photo_elm is None:
             result = "非会員"
         else:
             result = "無料会員"
+        
         return result
         
