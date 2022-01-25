@@ -116,7 +116,7 @@ class LoadingAnimation:
     Y:float = 0.0
     X:float = 60.0
     
-    def __init__(self, gif_path:str, msg:str, position:tuple=((X,0),(Y, 0))) -> None:
+    def __init__(self, gif_path:str, msg:str, position:tuple=((X,0),(Y, 0))) -> gui.Window:
         """[summary]\n
         コンストラクタ。\n
         素材のPath,表示位置を指定してインスタンスを生成する。\n
@@ -133,8 +133,9 @@ class LoadingAnimation:
         self.window = gui.Window(
             'リクエスト待機中…', 
             layout=self.__lay_out(),
-            no_titlebar=True,
+            no_titlebar=False,
         )
+        return self.window
         
     def __lay_out(self) -> list:
         """[summary]\n
@@ -147,7 +148,7 @@ class LoadingAnimation:
             [gui.Text(self.msg, key='msg')],
         ]
         return L
-        
+
     def display(self, close_flg:any) -> None:
         """[summary]\n
         ローディングGUIを表示する。\n
@@ -162,8 +163,7 @@ class LoadingAnimation:
         event, value = self.window.read(timeout=60)
         img.update_animation([self.animation_gif], 60)
         
-        if close_flg.value == False or event in (None, 'Exit', 'Cancel'):
-            self.window.close()     
+        
     
         
 class AreaSelect:
@@ -299,6 +299,7 @@ class MainWindow:
         self.area_menu = AreaSelect()
         self.junle_menu = BigJunleSelect()
         self.path_menu = PathSelect()
+        self.loading_Animation  = LoadingAnimation('icon_loader_a_bb_01_s1.gif','waiting for request...')
         #状態フラグの初期化
         self.runnung = False
         self.detati = False
@@ -341,14 +342,12 @@ class MainWindow:
         
         while self.running:
             e, v = self.window.read(timeout=10, timeout_key='-timeoutEvent-')
-            if e == '-timeoutEvent-' and spider.loading_flg:
-                loading_animetion = LoadingAnimation(
-                    'icon_loader_a_bb_01_s1.gif',
-                    'クロール待機中です。'
-                )
-                loading_animetion.display(spider.loading_flg)
-            
-            
+            if e == '-timeoutEvent-' and spider.loading_flg.value:
+                loading_gif:gui.Image = self.loading_Animation['loading']
+                loading_gif.update_animation([self.loading_Animation.animation_gif], time_between_frames=60)
+            else:
+                loading_gif:gui.Image = self.loading_Animation['loading']
+                loading_gif.update(visible=False)
             """ProgressDisplay process"""
             #カウンタ変数の取得
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
