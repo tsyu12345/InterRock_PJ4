@@ -55,14 +55,15 @@ def ArrayStrsToOneStr(array:list):
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
-    #start_urls = ['https://www.ekiten.jp/shop_88106804/']
+    start_urls = ['https://www.ekiten.jp/shop_88106804/']
     MAX_RRTRYCOUNT = 3
     RETEYED = 0
     CRAWLED_URL = []
     RETRY_URL = []
     
+    """
     def __init__(self, prefectures:list, counter, loading_flg, end_flg) -> None:
-        """
+        
         Summary Lines\n
         初期化処理。対象都道府県とジャンルを指定する。\n
         Args:\n
@@ -70,14 +71,13 @@ class EkitenspiderSpider(scrapy.Spider):
             counter (Maneger.Value('i', 0)): 処理済み数を格納する共有メモリ変数\n
             loading_flg (Manager.Value('b', False)): ローディング中かどうかを格納する共有メモリ変数\n
             end_flg (Manager.Value('b', False)): 中断時のフラグを格納する共有メモリ変数\n
-        """
         self.prefecture_list:list = prefectures 
         self.counter = counter
         self.loading_flg = loading_flg
         self.end_flg = end_flg
-        self.middleware = SeleniumMiddlewares(self.prefecture_list, 4)
+        #self.middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         print("####init####")
-    
+    """
     def __stop_spider(self):
         """
         [summary]\n 
@@ -90,14 +90,14 @@ class EkitenspiderSpider(scrapy.Spider):
                 raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
 
 
-    
+    """
     def start_requests(self):
-        """
+
         Summary Lines
         店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
         Yields:
             str: middlewareで返却された小ジャンルURL
-        """
+        
         visor = th.Thread(target=self.__stop_spider, daemon=True)
         visor.start()
         
@@ -107,7 +107,7 @@ class EkitenspiderSpider(scrapy.Spider):
         
         for url in result:
             yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-          
+    """  
         
     def error_parse(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
@@ -168,7 +168,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Args:
             response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト
         """
-        self.loading_flg.value = False
+        #self.loading_flg.value = False
         item = EkitenscrapyItem()
         print("#####parse#####")
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
@@ -345,7 +345,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['is_official'] = self.__is_official(response) #公式店舗       
         print(item['is_official'])
         
-        self.counter.value += 1
+        #self.counter.value += 1
         
         """
         scraping items below

@@ -76,7 +76,7 @@ class SpiderExecute:
         
 class SpiderCall: #TODO:中止処理の追加
     """
-    旧スパイダー実行クラス！！。現在はRunnnerでの構築中。
+    旧スパイダー実行クラス。現在はRunnerでの構築中。
     Summary:\n
     Spyderを実行する。およびその関連機能の呼び出し、参照を行う。
     Args:\n
@@ -86,14 +86,20 @@ class SpiderCall: #TODO:中止処理の追加
     """
     def __init__(self, pref_list:list, save_path:str, junle:str):
         self.pref_list = pref_list
+        
         settings = get_project_settings()
-        settings.set('FEED_URI', save_path)
+        settings.set(
+            "FEEDS", 
+            {
+                "test.csv": {"format": "csv"},
+            }
+        )
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
-        self.process = CrawlerProcess(settings)
+        self.process = CrawlerProcess(settings = settings)
         self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg, self.end_flg)
         
     def run(self):
@@ -299,7 +305,7 @@ class MainWindow:
         self.area_menu = AreaSelect()
         self.junle_menu = BigJunleSelect()
         self.path_menu = PathSelect()
-        self.loading_Animation  = LoadingAnimation('icon_loader_a_bb_01_s1.gif','waiting for request...')
+        #self.loading_Animation  = LoadingAnimation('icon_loader_a_bb_01_s1.gif','waiting for request...')
         #状態フラグの初期化
         self.runnung = False
         self.detati = False
@@ -341,6 +347,7 @@ class MainWindow:
         spider_process.start()
         
         while self.running:
+            """
             e, v = self.window.read(timeout=10, timeout_key='-timeoutEvent-')
             if e == '-timeoutEvent-' and spider.loading_flg.value:
                 loading_gif:gui.Image = self.loading_Animation['loading']
@@ -348,6 +355,8 @@ class MainWindow:
             else:
                 loading_gif:gui.Image = self.loading_Animation['loading']
                 loading_gif.update(visible=False)
+            """
+            
             """ProgressDisplay process"""
             #カウンタ変数の取得
             total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
