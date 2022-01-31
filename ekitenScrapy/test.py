@@ -1,3 +1,4 @@
+from importlib.resources import path
 from pydoc import visiblename
 from time import time
 from scrapy.crawler import CrawlerProcess 
@@ -32,9 +33,14 @@ class SpiderCall: #TODO:中止処理の追加
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
-        print(get_project_settings())
-        self.process = CrawlerProcess(get_project_settings())
-        self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg, self.end_flg)
+        setting = get_project_settings()
+        setting.set('FEEDS', {
+            pathlib.Path('file://./test.csv'): {
+                'format': 'csv',
+            }
+        })
+        self.process = CrawlerProcess(setting)
+        self.process.crawl('ekitenSpider',)
         
     def run(self):
         #検索総数を取得6
