@@ -33,13 +33,12 @@ class SpiderCall: #TODO:中止処理の追加
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
-        setting = get_project_settings()
-        setting.set('FEEDS', {
-            pathlib.Path('file://./test.csv'): {
-                'format': 'csv',
-            }
-        })
-        self.process = CrawlerProcess(setting)
+        settings = get_project_settings()
+        settings.set('FEED_FORMAT', 'csv')
+        settings.set('FEED_URI', save_path)
+        settings.set('FEED_EXPORT_ENCODING', 'utf-8')
+        
+        self.process = CrawlerProcess(settings=settings)
         self.process.crawl('ekitenSpider',)
         
     def run(self):

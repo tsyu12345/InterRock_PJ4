@@ -12,6 +12,9 @@ BOT_NAME = 'testSpider'
 SPIDER_MODULES = ['ekitenScrapy.spiders']
 NEWSPIDER_MODULE = 'ekitenScrapy.spiders'
 
+#Save path and format settings
+#FEED_FORMAT = 'csv'
+#FEED_URI = './test.csv'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'

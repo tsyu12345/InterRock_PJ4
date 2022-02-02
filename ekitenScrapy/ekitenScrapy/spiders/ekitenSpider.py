@@ -345,6 +345,8 @@ class EkitenspiderSpider(scrapy.Spider):
         item['is_official'] = self.__is_official(response) #公式店舗       
         print(item['is_official'])
         
+        yield item
+        
         #self.counter.value += 1
         
         """
