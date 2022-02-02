@@ -88,7 +88,7 @@ class SpiderCall: #TODO:中止処理の追加
         self.pref_list = pref_list
         
         settings = get_project_settings()
-        settings.set('FEED_FORMAT', 'csv')
+        settings.set('FEED_FORMAT', 'xlsx')
         settings.set('FEED_URI', save_path)
         
         maneger = Manager()
