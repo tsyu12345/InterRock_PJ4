@@ -12,6 +12,11 @@ BOT_NAME = 'testSpider'
 SPIDER_MODULES = ['ekitenScrapy.spiders']
 NEWSPIDER_MODULE = 'ekitenScrapy.spiders'
 
+#FEED_EXPORT_ENCODING = 'utf-8'
+FEED_EXPORTERS = {
+    'xlsx': 'scrapy_xlsx.XlsxItemExporter',
+}
+
 #Save path and format settings
 #FEED_FORMAT = 'csv'
 #FEED_URI = './test.csv'

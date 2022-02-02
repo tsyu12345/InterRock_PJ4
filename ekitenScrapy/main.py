@@ -90,7 +90,7 @@ class SpiderCall: #TODO:中止処理の追加
         settings = get_project_settings()
         settings.set('FEED_FORMAT', 'csv')
         settings.set('FEED_URI', save_path)
-        settings.set('FEED_EXPORT_ENCODING', 'utf-8')
+        
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数

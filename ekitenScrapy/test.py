@@ -34,9 +34,9 @@ class SpiderCall: #TODO:中止処理の追加
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
         settings = get_project_settings()
-        settings.set('FEED_FORMAT', 'csv')
+        settings.set('FEED_FORMAT', 'xlsx')
         settings.set('FEED_URI', save_path)
-        settings.set('FEED_EXPORT_ENCODING', 'utf-8')
+        #settings.set('FEED_EXPORT_ENCODING', 'utf-8')
         
         self.process = CrawlerProcess(settings=settings)
         self.process.crawl('ekitenSpider',)
@@ -53,7 +53,7 @@ class SpiderCall: #TODO:中止処理の追加
         self.end_flg.value = True
 
 def main():
-    test = SpiderCall(['徳島県'],'test.csv', '全てのジャンル')
+    test = SpiderCall(['徳島県'],'test.xlsx', '全てのジャンル')
     test.run()
     
     

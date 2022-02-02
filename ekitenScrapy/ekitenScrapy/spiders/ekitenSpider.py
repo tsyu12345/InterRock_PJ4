@@ -1,23 +1,13 @@
-from os import access, truncate
-from subprocess import call
-from typing import Generator, Mapping
-from warnings import catch_warnings
-from bs4.element import PreformattedString
-from scrapy import spiders
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+# -*- coding: utf-8 -*-
 import scrapy
 from scrapy.exceptions import CloseSpider
 import threading as th
 import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
-from multiprocessing import Manager
+
 from ..middlewares import *
 from ..JisCode import JisCode
-from ..selenium_middleware import SeleniumMiddlewares
 
 
 
