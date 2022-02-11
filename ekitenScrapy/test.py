@@ -59,4 +59,8 @@ def main():
     
     
 if __name__ == "__main__":
-    main()
+    #main()
+    testDic:dict = {
+        "test":3
+    }
+    print(testDic["test"])

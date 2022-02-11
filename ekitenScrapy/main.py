@@ -1,13 +1,8 @@
 #Scrapy関係のインポート
-from pydoc import visiblename
-from time import time
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
-from scrapy.statscollectors import StatsCollector
 from RequestTotalCount import RequestTotalCount
 import pathlib
-from twisted.internet import reactor
-import scrapy
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.log import configure_logging
 from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
@@ -21,6 +16,9 @@ import traceback
 #スレッド関係のインポート
 from multiprocessing import Pool, freeze_support, Manager
 import threading as th
+
+#ワークシート関係
+from ExcelEdit import ExcelEdit as Edit
 
 class SpiderExecute:
     """[summary]\n
@@ -85,7 +83,9 @@ class SpiderCall: #TODO:中止処理の追加
         junle(str): スクレイピングするジャンル\n
     """
     def __init__(self, pref_list:list, save_path:str, junle:str):
+        
         self.pref_list = pref_list
+        self.save_path = save_path
         
         settings = get_project_settings()
         settings.set('FEED_FORMAT', 'xlsx')
@@ -96,6 +96,7 @@ class SpiderCall: #TODO:中止処理の追加
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
+        
         self.process = CrawlerProcess(settings = settings)
         self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg, self.end_flg)
         
@@ -106,7 +107,17 @@ class SpiderCall: #TODO:中止処理の追加
         self.total_counter.value = count
         
         self.process.start() # the script will block here until the crawling is finished
+        
+        self.__finalize()
 
+    def __finalize(self):
+        """
+        クロール終了後のワークシートの仕上げ処理。各項目の整形
+        """
+        editor = Edit(self.save_path)
+        editor.col_menulocalize()
+        editor.save()
+        
     def stop(self):
         self.end_flg.value = True
         
@@ -383,32 +394,32 @@ class MainWindow:
                 
                 break
     
-    def __input_check(self, win:gui.Window, value):#TODO:self.windowを引数にしているので、これはいらないかも。
+    def __input_check(self, value):#TODO:self.windowを引数にしているので、これはいらないかも。
         checker = [False, False, False]
         
         if value['pref_name'] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value['pref_name']) == None:
             text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
-            win['pref_title'].update(text2, text_color='red')
-            win['pref_name'].update(background_color='red')
+            self.window['pref_title'].update(text2, text_color='red')
+            self.window['pref_name'].update(background_color='red')
         else:
             text2 = "都道府県"
-            win['pref_title'].update(text2, text_color='purple')
-            win['pref_name'].update(background_color='white')
+            self.window['pref_title'].update(text2, text_color='purple')
+            self.window['pref_name'].update(background_color='white')
             checker[0] = True
             
         if value['Big_junle'] == "":
-            win['junle_title'].update("ジャンル選択 ※選択必須です。", text_color='red')
+            self.window['junle_title'].update("ジャンル選択 ※選択必須です。", text_color='red')
         else:
-            win['junle_title'].update("ジャンル選択", text_color='purple')
+            self.window['junle_title'].update("ジャンル選択", text_color='purple')
             checker[1] = True
             
         if value['path'] == "":
-            win['path_title'].update(
+            self.window['path_title'].update(
                 'フォルダ選択 ※保存先が選択されていません。', text_color='red')
-            win['path'].update(background_color="red")
+            self.window['path'].update(background_color="red")
         else:
-            win['path_title'].update(text_color='purple')
-            win['path'].update(background_color="white")
+            self.window['path_title'].update(text_color='purple')
+            self.window['path'].update(background_color="white")
             checker[2] = True
 
         if False in checker:

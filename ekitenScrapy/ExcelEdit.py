@@ -31,7 +31,7 @@ class AbsExcelEdit(object, metaclass=ABCMeta):
             "st_home_page2" : "URLその2",
             "st_home_page3" : "URLその3",
             "pankuzu" : "パンくず",
-            "catch_up" : "キャッチ",
+            "catch_cp" : "キャッチ",
             "is_official" : "店舗公式",
             "evaluation_score" : "評価点",
             "review_count" : "口コミ数",
@@ -60,7 +60,7 @@ class AbsExcelEdit(object, metaclass=ABCMeta):
             "menu" : "メニュー",
             "feature" : "特徴",
             "point" : "ポイント",
-            "here_is_good" : "ここがすごい",
+            "here_is_great" : "ここがすごい",
             "media_related": "メディア関連",
             "pricing" : "価格設定",
             "multi_access" : "マルチアクセス",
@@ -68,7 +68,7 @@ class AbsExcelEdit(object, metaclass=ABCMeta):
         }
     
     @abstractmethod
-    def row_localization(self):
+    def col_menulocalize(self):
         pass
     
     
@@ -83,14 +83,22 @@ class ExcelEdit(AbsExcelEdit):
     """
     
     def __init__(self, file_path: str) -> None:
-        super(ExcelEdit).__init__(file_path)
+        super().__init__(file_path)
         
-    def row_localization(self):
+    def col_menulocalize(self):
         """\n
         クロール後のExcelファイルの、
         先頭行の変数で記載された項目を日本語化する。
         """
-        
-        
+        for col in range(1, self.worksheet.max_column + 1):
+            original:str = self.worksheet.cell(row=1, column=col).value
+            self.worksheet.cell(row=1, column=col).value = self.colm_menu[original]
+
+#test call
+if __name__ == '__main__':
+    test = ExcelEdit('test.xlsx')
+    test.col_menulocalize()
+    test.save()
+    
 
 
