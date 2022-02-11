@@ -51,9 +51,9 @@ class EkitenspiderSpider(scrapy.Spider):
     CRAWLED_URL = []
     RETRY_URL = []
     
-    """
+    
     def __init__(self, prefectures:list, counter, loading_flg, end_flg) -> None:
-        
+        """
         Summary Lines\n
         初期化処理。対象都道府県とジャンルを指定する。\n
         Args:\n
@@ -61,13 +61,14 @@ class EkitenspiderSpider(scrapy.Spider):
             counter (Maneger.Value('i', 0)): 処理済み数を格納する共有メモリ変数\n
             loading_flg (Manager.Value('b', False)): ローディング中かどうかを格納する共有メモリ変数\n
             end_flg (Manager.Value('b', False)): 中断時のフラグを格納する共有メモリ変数\n
+        """
         self.prefecture_list:list = prefectures 
         self.counter = counter
         self.loading_flg = loading_flg
         self.end_flg = end_flg
         #self.middleware = SeleniumMiddlewares(self.prefecture_list, 4)
         print("####init####")
-    """
+    
     def __stop_spider(self):
         """
         [summary]\n 
@@ -80,14 +81,14 @@ class EkitenspiderSpider(scrapy.Spider):
                 raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
 
 
-    """
+    
     def start_requests(self):
-
+        """
         Summary Lines
         店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
         Yields:
             str: middlewareで返却された小ジャンルURL
-        
+        """
         visor = th.Thread(target=self.__stop_spider, daemon=True)
         visor.start()
         
@@ -96,10 +97,10 @@ class EkitenspiderSpider(scrapy.Spider):
         result = self.middleware.run()
         
         for url in result:
-            yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-    """  
+            yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+      
         
-    def error_parse(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
+    def error_process(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
         scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
         後にリトライリクエストする。\n
@@ -112,13 +113,13 @@ class EkitenspiderSpider(scrapy.Spider):
         response = failure.value.response
         url = response.url
         if "shop_" in url:#shop_idが含まれているURLの場合。
-            yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
+            yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
         else:
-            yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
-        #yield scrapy.Request(url, callback=self.pre_parse, errback=self.error_parse)
+            yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+        #yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
         #self.RETRY_URL.append(url)
     
-    def pre_parse(self, response):
+    def request_store_page(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
         Args:
@@ -136,7 +137,7 @@ class EkitenspiderSpider(scrapy.Spider):
             url = response.urljoin(href)
             if url not in self.CRAWLED_URL:#重複スクレイピング対策
                 self.CRAWLED_URL.append(url)
-                yield scrapy.Request(url, callback=self.parse, errback=self.error_parse)
+                yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
                 print("call store info scraping..")
         
         #次のページがあるかどうか
@@ -146,7 +147,7 @@ class EkitenspiderSpider(scrapy.Spider):
             print("#####next page#####")
             next_page_url = response.urljoin(next_page.css('a::attr(href)').extract_first())
             print(next_page_url)
-            yield scrapy.Request(next_page_url, callback=self.pre_parse, errback=self.error_parse)
+            yield scrapy.Request(next_page_url, callback=self.request_store_page, errback=self.error_process)
         
         #
             
@@ -157,6 +158,8 @@ class EkitenspiderSpider(scrapy.Spider):
         本スクレイピング処理。店舗のページにアクセスして情報をitemsに格納する。
         Args:
             response (scrapy.Request): scrapy.Requestで返されたresponseオブジェクト
+        Yields:
+            items.ShopItem: 店舗情報を格納するitemオブジェクト
         """
         #self.loading_flg.value = False
         item = EkitenscrapyItem()
@@ -337,9 +340,10 @@ class EkitenspiderSpider(scrapy.Spider):
         
         yield item
         
-        #self.counter.value += 1
+        self.counter.value += 1
         
         """
+        以下は後日調整。
         scraping items below
         item['store_big_junle'] =  #大ジャンル
         item['latitude'] =  #緯度
@@ -460,6 +464,13 @@ class EkitenspiderSpider(scrapy.Spider):
         near_store_elm = response.css('div.p-area_match_title .heading .lv2').extract_first()
         profile_photo_elm = response.css('div.lazy_load_container').extract_first()
         
+        if near_store_elm is not None and profile_photo_elm is None:
+            result = "月額5000円"
+        elif near_store_elm is None and profile_photo_elm is not None:
+            result = "無料会員"
+        else:
+            result = "非会員"
+        """
         if near_store_elm is None:
             result = "月額5000円"
         
@@ -467,6 +478,6 @@ class EkitenspiderSpider(scrapy.Spider):
             result = "非会員"
         else:
             result = "無料会員"
-        
+        """
         return result
         
