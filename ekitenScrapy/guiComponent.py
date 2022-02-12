@@ -107,7 +107,7 @@ class BigJunleSelect(AbsGUIComponent):
     def _lay_out(self):
         L = [
             [gui.Text("抽出ジャンル選択", size=(60, None), key='junle_title')],
-            [gui.InputOptionMenu(self.junle, key=("Big_junle"), size=(40, None))]
+            [gui.InputCombo(self.junle, key=("Big_junle"), size=(40, None))]
         ]
         return L
     
@@ -116,10 +116,36 @@ class PathSelect(AbsGUIComponent):
     Summary Line\n
     保存先のフォルダ選択を行うGUIボタンの定義。
     """
-    def lay_out(self):
+    def _lay_out(self):
         L = [
             [gui.Text("フォルダ選択", key='path_title', size=(60, None))],
-            [gui.InputText(key='path'), gui.SaveAs("選択", file_types=( [('CSV (コンマ区切り)','*.csv')]))]
+            [gui.InputText(key='path'), gui.SaveAs("選択", file_types=( [('Excelファイル','*.xlsx')]))]
         ]
         return L
 
+"""
+class LogOutputWindow(AbsGUIComponent):
+    
+    def __init__(self):
+"""     
+
+class ErrorPopup(AbsGUIComponent):
+    """[summary]\n
+    ハンドルされていない例外が発生したときのエラー画面を表示する。
+    """
+    def __init__(self, message) -> None:
+        """[summary]\n
+        Args:\n
+            message(str):例外のメッセージ\n
+        """
+        defaulf_msg = "想定されていないエラーが発生しました。\n開発者に以下のログを転送してください。\n"
+        self.msg = defaulf_msg + message #エラーメッセージ全体
+    
+    def display(self):
+        gui.popup_scrolled(
+            self.msg, 
+            title="Unknown Error",
+            text_color="red",
+        )
+        
+class 

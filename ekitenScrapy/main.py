@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 #Scrapy関係のインポート
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
@@ -6,6 +8,7 @@ import pathlib
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.log import configure_logging
 from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
+from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
 
 #GUI関係のインポート
 import PySimpleGUI as gui
@@ -19,6 +22,25 @@ import threading as th
 
 #ワークシート関係
 from ExcelEdit import ExcelEdit as Edit
+
+#TODO:分散クロールの実装
+
+#Local function
+
+def list_split(n:int, l:list) -> list[list[str]]:
+    """Summary Line:\n
+    リストを指定数に分割し、その2次元リストを返却する。
+    Args:\n
+        n (int): 分割数\n
+        l (list): 分割対象のリスト\n
+    Returns:\n
+        list: 分割されたリスト要素を格納したlist\n
+    """
+    result = []
+    for i in range(0, len(l), n):
+        add = l[i:i + n]
+        result.append(add)
+    return result
 
 class SpiderExecute:
     """[summary]\n
@@ -72,7 +94,7 @@ class SpiderExecute:
         r_v = self.runner.stop()
         print(r_v)
         
-class SpiderCall: #TODO:中止処理の追加
+class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
     """
     旧スパイダー実行クラス。現在はRunnerでの構築中。
     Summary:\n
@@ -87,27 +109,56 @@ class SpiderCall: #TODO:中止処理の追加
         self.pref_list = pref_list
         self.save_path = save_path
         
-        settings = get_project_settings()
-        settings.set('FEED_FORMAT', 'xlsx')
-        settings.set('FEED_URI', save_path)
+        self.settings = get_project_settings()
+        self.settings.set('FEED_FORMAT', 'xlsx')
+        self.settings.set('FEED_URI', save_path)
         
+        #各フラグ、カウンタ変数の定義
         maneger = Manager()
         self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
         self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
         
-        self.process = CrawlerProcess(settings = settings)
-        self.process.crawl('ekitenSpider', pref_list, self.counter, self.loading_flg, self.end_flg)
+        #middlewareインスタンスの生成
+        self.middleware = SeleniumMiddlewares(self.pref_list, 4)
         
-    def run(self):
+        
+        #Poolオブジェクトの生成
+        self.p = Pool(4)
+        self.apply_results:list[AsyncResult] = []
+        
+    def __make_crawler_process(self, url_2d_list:list[list[str]]) -> None:
+        """[summary]\n
+        CrawlerProcessのインスタンスを生成し、Poolに登録する。
+        """
+        for url_list in url_2d_list:
+            
+            crawler = CrawlerProcess(settings=self.settings)
+            crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, url_list)
+            async_result = self.p.apply_async(crawler.start, args=())
+            self.apply_results.append(async_result)
+        
+
+    def run(self) -> None:
+        """[summary]\n
+        GUIの実行ボタンクリック後に実行される。
+        Spider一連のスクレイピング処理を実行する。
+        このメソッドは非同期で実行されたい。
+        """
         #検索総数を取得
+        self.loading_flg.value = True
+        
         count = RequestTotalCount(self.pref_list).get_count()
         print("totalCount: "+str(count))
+        
         self.total_counter.value = count
         
-        self.process.start() # the script will block here until the crawling is finished
+        result = self.middleware.run()
+        crawl_url_list = list_split(4, result)
         
+        self.__make_crawler_process(crawl_url_list)
+        #TODO:ここで各CrawlerProcessの終了を待ち受ける。
         self.__finalize()
 
     def __finalize(self):

@@ -334,12 +334,12 @@ class SeleniumMiddlewares():
     
     def __procedure(self, area):
         """[summary]\n
+        apply_asyncを使用して、小ジャンルクラスのインスタンスに対して抽出処理を実行する。\n
+        Args:\n
+            area (str): 対象都道府県\n
 
-        Args:
-            area (str): 対象都道府県
-
-        Returns:
-            list: その都道府県の小ジャンルごとのURLリスト
+        Returns:\n
+            list: その都道府県の小ジャンルごとのURLリスト\n
         """
         city_list = self.city_ext.extraction(area)
         self.city_ext.quitDriver()

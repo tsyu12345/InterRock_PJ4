@@ -5,7 +5,7 @@ import threading as th
 import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
-
+from __future__ import annotations
 from ..middlewares import *
 from ..JisCode import JisCode
 
@@ -52,21 +52,21 @@ class EkitenspiderSpider(scrapy.Spider):
     RETRY_URL = []
     
     
-    def __init__(self, prefectures:list, counter, loading_flg, end_flg) -> None:
+    def __init__(self, counter:any, loading_flg:any, end_flg:any, small_junle_url_list:list[str]) -> None:
         """
         Summary Lines\n
-        初期化処理。対象都道府県とジャンルを指定する。\n
+        初期化処理。selenium_middlewareから受け取ったURLリストに従い、店舗ページをクロールする。\n
         Args:\n
-            prefectures (list): 対象都道府県のリスト\n
             counter (Maneger.Value('i', 0)): 処理済み数を格納する共有メモリ変数\n
             loading_flg (Manager.Value('b', False)): ローディング中かどうかを格納する共有メモリ変数\n
             end_flg (Manager.Value('b', False)): 中断時のフラグを格納する共有メモリ変数\n
-        """
-        self.prefecture_list:list = prefectures 
-        self.counter = counter
-        self.loading_flg = loading_flg
-        self.end_flg = end_flg
-        #self.middleware = SeleniumMiddlewares(self.prefecture_list, 4)
+            small_junle_url_list (list): 小ジャンルURLリスト\n
+        """ 
+        self.counter = counter #type : int
+        self.loading_flg = loading_flg #type : bool
+        self.end_flg = end_flg #type : bool
+        self.small_junle_url_list = small_junle_url_list #type : list[str]
+        
         print("####init####")
     
     def __stop_spider(self):
@@ -81,7 +81,6 @@ class EkitenspiderSpider(scrapy.Spider):
                 raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
 
 
-    
     def start_requests(self):
         """
         Summary Lines
@@ -94,11 +93,8 @@ class EkitenspiderSpider(scrapy.Spider):
         
         self.loading_flg.value = True
         
-        result = self.middleware.run()
-        
-        for url in result:
+        for url in self.small_junle_url_list:
             yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
-      
         
     def error_process(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
@@ -149,7 +145,7 @@ class EkitenspiderSpider(scrapy.Spider):
             print(next_page_url)
             yield scrapy.Request(next_page_url, callback=self.request_store_page, errback=self.error_process)
         
-        #
+        
             
     def parse(self, response):
         #TODO:未抽出項目の追加、修正。
@@ -161,7 +157,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Yields:
             items.ShopItem: 店舗情報を格納するitemオブジェクト
         """
-        #self.loading_flg.value = False
+        self.loading_flg.value = False
         item = EkitenscrapyItem()
         print("#####parse#####")
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
