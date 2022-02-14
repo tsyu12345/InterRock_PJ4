@@ -127,14 +127,33 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         #Poolオブジェクトの生成
         self.p = Pool(4)
         self.apply_results:list[AsyncResult] = []
+    
+    def __join(self):
+        """Summary Line:\n
+        Pool.apply_asyncで実行する関数の終了を待機する
+
+        Returns:\n
+            list: Pool.apply_asyncの実行結果、返却値\n
+        """
+        running = [False, False, False, False]
+        return_list = []
         
+        while True:
+            for i, result in enumerate(self.apply_results):
+                if result.ready():
+                    return_list.append(result.get())
+                    running[i] = True
+            if False not in running:
+                break
+        return return_list
+    
     def __make_crawler_process(self, url_2d_list:list[list[str]]) -> None:
         """[summary]\n
         CrawlerProcessのインスタンスを生成し、Poolに登録する。
         """
         for url_list in url_2d_list:
             
-            crawler = CrawlerProcess(settings=self.settings)
+            crawler:CrawlerProcess = CrawlerProcess(settings=self.settings)
             crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, url_list)
             async_result = self.p.apply_async(crawler.start, args=())
             self.apply_results.append(async_result)
@@ -156,9 +175,10 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         
         result = self.middleware.run()
         crawl_url_list = list_split(4, result)
-        
         self.__make_crawler_process(crawl_url_list)
         #TODO:ここで各CrawlerProcessの終了を待ち受ける。
+        self.__join()
+        
         self.__finalize()
 
     def __finalize(self):
@@ -496,7 +516,7 @@ class MainWindow:
                 self.window['pref_name'].update(v)
 
         if event == '抽出実行':
-            checker = self.__input_check(self.window, value)
+            checker = self.__input_check(value)
             if checker is True:
                 self.__process(value, event)
                 self.__compleate_popup(value)

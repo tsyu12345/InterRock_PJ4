@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
 import scrapy
 from scrapy.exceptions import CloseSpider
 import threading as th
 import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
-from __future__ import annotations
 from ..middlewares import *
 from ..JisCode import JisCode
 

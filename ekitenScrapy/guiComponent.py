@@ -147,5 +147,3 @@ class ErrorPopup(AbsGUIComponent):
             title="Unknown Error",
             text_color="red",
         )
-        
-class 
