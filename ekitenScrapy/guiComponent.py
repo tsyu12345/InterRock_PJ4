@@ -1,7 +1,7 @@
+from __future__ import annotations
+
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
-import sys
-import traceback
 from abc import ABC, ABCMeta, abstractmethod
 
 class AbsGUIComponent(object, metaclass=ABCMeta):
@@ -20,7 +20,7 @@ class AbsGUIComponent(object, metaclass=ABCMeta):
 class AreaSelect(AbsGUIComponent):
     """
     Summary:\n
-    都道府県選択のGUIを別ウィンドウ表示する。
+    都道府県選択をおこなうGUIコンポーネント
     """
     
     def __init__(self) -> None:
@@ -30,25 +30,26 @@ class AreaSelect(AbsGUIComponent):
     
     def _lay_out(self):
         L = [
-                [gui.Text("都道府県",
-                        key='pref_title', size=(60, None))],
+                [gui.Text("都道府県", key='pref_title', size=(60, None))],
                 [gui.InputText(key=('pref_name')), gui.Button('エリア選択')],
             ]
         return L
 
     
-class SelectPrefectureWindow(AreaSelect):
+class SelectPrefectureWindow(AbsGUIComponent):
     """[summary]\n
     別ウィンドウで表示する、都道府県選択のGUIコンポーネント。
     """
     
     def __init__(self) -> None:
-        super().__init__()
         self.display_row:int = 8 #表示可能行数
         self.display_col:int = 6 #表示可能列数
         
+        pref_str:str = '北海道,青森県,岩手県,宮城県,秋田県,山形県,福島県,茨城県,栃木県,群馬県,埼玉県,千葉県,東京都,神奈川県,新潟県,富山県,石川県,福井県,山梨県,長野県,岐阜県,静岡県,愛知県,三重県,滋賀県,京都府,大阪府,兵庫県,奈良県,和歌山県,鳥取県,島根県,岡山県,広島県,山口県,徳島県,香川県,愛媛県,高知県,福岡県,佐賀県,長崎県,熊本県,大分県,宮崎県,鹿児島県,沖縄県'
+        self.prefecture_list:list[str] = pref_str.split(',')
+        
         self.window = gui.Window('エリア選択', layout=self._lay_out()) #Windowインスタンス
-        self.selected_pref:list = []
+        self.selected_pref:list[str] = []
         
     
     def _lay_out(self) -> list:
@@ -66,7 +67,7 @@ class SelectPrefectureWindow(AreaSelect):
         L.append([gui.Button('OK', key='OK')])
         return L
     
-    def display(self):
+    def display(self) -> list[str]:
         
         while True:
             event, value = self.window.read()
@@ -78,6 +79,7 @@ class SelectPrefectureWindow(AreaSelect):
             if event in ("Quit", None, 'OK'):
                 break
         self.window.close()
+        return self.selected_pref
         
 class BigJunleSelect(AbsGUIComponent):
     """
@@ -123,13 +125,62 @@ class PathSelect(AbsGUIComponent):
         ]
         return L
 
+
+class StartUpWindowFrame(AbsGUIComponent):
+    """[summary]\n
+    初期設定画面のGUI画面の定義。各種GUIコンポーネントを組み合わせている。
+    """
+    #TODO:現在暗黙的にコンポーネント内のlayout配列の要素数が2であることを前提としているのでこれを直す。
+    
+    def __init__(self) -> None:
+        self.area_menu = AreaSelect()
+        self.junle_menu = BigJunleSelect()
+        self.path_menu = PathSelect()
+    
+    def _lay_out(self) -> list:
+        
+        area_layout = self.area_menu._lay_out()
+        junle_layout = self.junle_menu._lay_out()
+        path_layout = self.path_menu._lay_out()
+        
+        L = [
+                [
+                    gui.Frame(
+                        "抽出条件", [
+                            area_layout[0], area_layout[1],
+                            junle_layout[0], junle_layout[1],   
+                        ]
+                    )
+                ],
+                [
+                    gui.Frame(
+                        "保存先",
+                        [path_layout[0], path_layout[1]],
+                    )
+                ],
+                [
+                    gui.Button("抽出実行")
+                ]
+            ]
+        
+        return L
+    
+    def get_layout(self) -> list:
+        """[summary]\n
+        画面のレイアウトを返す。
+        """
+        return self._lay_out()
+        
+        
+
+
 """
 class LogOutputWindow(AbsGUIComponent):
     
     def __init__(self):
 """     
 
-class ErrorPopup(AbsGUIComponent):
+class ErrorPopup():
     """[summary]\n
     ハンドルされていない例外が発生したときのエラー画面を表示する。
     """

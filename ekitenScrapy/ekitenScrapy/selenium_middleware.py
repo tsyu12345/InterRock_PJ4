@@ -1,5 +1,3 @@
-
-
 from selenium.webdriver.chrome import options
 from abc import ABCMeta, abstractmethod
 # from scrapy.http import HtmlResponse
@@ -157,7 +155,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        self.options.add_argument("--headless")
+        #self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
