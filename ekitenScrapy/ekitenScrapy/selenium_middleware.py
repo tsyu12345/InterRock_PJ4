@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from selenium.webdriver.chrome import options
 from abc import ABCMeta, abstractmethod
 # from scrapy.http import HtmlResponse
@@ -5,7 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from bs4 import BeautifulSoup as Soup
+from selenium.common.exceptions import TimeoutException
+#from bs4 import BeautifulSoup as Soup
 #from JisCode import JisCode
 from multiprocessing import Pool, Manager, freeze_support
 import requests
@@ -13,7 +16,7 @@ import requests
 #import spiders.ekitenSpider as ekitenSpider
 import os
 import sys
-
+import time
 
 #Local finctions here
 def JisCode(pref_name:str)->int:
@@ -299,14 +302,26 @@ class SmallJunleExtraction(AbsExtraction):
         """
         result_list = []
         driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
-        for url in url_list:
-            driver.get(url)
-            wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
-            #FIXME:selenium timeout Exception が発生する↓。
+        wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
+        
+        def get_href(url:str) -> None:
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
             a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
             for a in a_tags:
                 result_list.append(a.get_attribute('href'))
+        
+        
+        for url in url_list:
+            driver.get(url)
+            #FIXME:selenium timeout Exception が発生する↓。
+            try:
+                get_href(url)
+            except TimeoutException:
+                driver.quit()
+                time.sleep(300)#5分待機
+                driver.get(url)
+                get_href(url)
+                
         driver.quit()
         print(result_list)
         return result_list

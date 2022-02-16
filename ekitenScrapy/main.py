@@ -108,8 +108,9 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         クロール終了後のワークシートの仕上げ処理。各項目の整形
         """
-        self.editor.col_menulocalize()
-        self.editor.save()
+        editor = Edit(self.save_path)
+        editor.col_menulocalize()
+        editor.save()
         
     def stop(self):
         self.end_flg.value = True
