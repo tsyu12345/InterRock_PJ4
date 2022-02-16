@@ -1,9 +1,10 @@
+from __future__ import annotations
 from bs4 import BeautifulSoup as Soup
 from ekitenScrapy.JisCode import JisCode
 from multiprocessing import Pool, Manager, freeze_support
 import requests
 
-def replaceAll(text:str, dic:list, replacing_character:str) -> str:
+def replaceAll(text:str, dic:list[str], replacing_character:str) -> str:
     """[summary]\n
     渡された置換対象文字をすべて１つの文字に置換する。\n
     Args:\n
@@ -22,15 +23,15 @@ class RequestTotalCount:
     """[summary]\n
         エキテン検索時画面の検索総数を取得する。
     """
-    def __init__(self, pref_list: list):
+    def __init__(self, pref_list: list[str]):
         """[summary]\n
         エキテン検索時画面の検索総数を取得する。
         Args:\n
             pref_list (list): 都道府県のリスト\n
         """
-        self.total_counter = 0
-        self.pref_list = pref_list
-        self.request_list = []
+        self.total_counter:int = 0
+        self.pref_list:list[str] = pref_list
+        self.request_list:list[str] = []
         for area in self.pref_list:
             jis_code = JisCode(area)
             url = 'https://www.ekiten.jp/area/a_prefecture' + str(jis_code) + '/'
