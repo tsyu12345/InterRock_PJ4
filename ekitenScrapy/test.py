@@ -60,7 +60,12 @@ def main():
     
 if __name__ == "__main__":
     #main()
-    testDic:dict = {
-        "test":3
-    }
-    print(testDic["test"])
+    import ExcelEdit
+    
+    d = ExcelEdit.COLUMN_MENUS
+    t = [k for k in d.keys()]
+    print(t)
+    
+    
+    
+    

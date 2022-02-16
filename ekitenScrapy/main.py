@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 #Scrapy関係のインポート
+import scrapy.item
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
 from RequestTotalCount import RequestTotalCount
@@ -18,7 +19,8 @@ from multiprocessing import Manager
 import threading as th
 
 #ワークシート関係
-from ExcelEdit import ExcelEdit as Edit
+import ExcelEdit
+from ExcelEdit import ExcelEdit as Edit 
 
 #TODO:分散クロールの実装
 
@@ -50,14 +52,23 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         save_path(str): スクレイピング結果の保存先\n
         junle(str): スクレイピングするジャンル\n
     """
+    #TODO:itemの定義にしたがって、FIELDSの順番、変数名を変更する
+    
+    FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in ExcelEdit.COLUMN_MENUS.keys()]
+    
     def __init__(self, pref_list:list, save_path:str, junle:str):
         
         self.pref_list = pref_list
         self.save_path = save_path
         
+        #middlewareインスタンスの生成
+        self.middleware = SeleniumMiddlewares(self.pref_list, 4)
+        
+        #Spider settings
         self.settings = get_project_settings()
         self.settings.set('FEED_FORMAT', 'xlsx')
         self.settings.set('FEED_URI', save_path)
+        self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
         
         #各フラグ、カウンタ変数の定義
         maneger = Manager()
@@ -66,9 +77,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
         
-        #middlewareインスタンスの生成
-        self.middleware = SeleniumMiddlewares(self.pref_list, 4)
-
+        
     def run(self) -> None:
         """[summary]\n
         GUIの実行ボタンクリック後に実行される。
@@ -99,9 +108,8 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         クロール終了後のワークシートの仕上げ処理。各項目の整形
         """
-        editor = Edit(self.save_path)
-        editor.col_menulocalize()
-        editor.save()
+        self.editor.col_menulocalize()
+        self.editor.save()
         
     def stop(self):
         self.end_flg.value = True
