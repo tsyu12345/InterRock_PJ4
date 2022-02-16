@@ -184,7 +184,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
     @abstractmethod
     def restart_driver(self) -> None:
         """Summary Line.\n
-        ブラウザを終了する。\n
+        ブラウザを終了し、webDriverの再起動をする。\n
         """
         pass
 
@@ -219,10 +219,12 @@ class CityUrlExtraction(AbsExtraction):
             get_href()
         except TimeoutException:
             print("タイムアウト")
-            time.sleep(10)
-            self.driver.refresh()
+            time.sleep(300)
+            self.restart_driver()
             get_href()
-                
+        
+        self.driver.delete_all_cookies()
+        self.driver.quit()
         return urls
         
     def extraction(self, pref_name:str) -> list:
@@ -239,8 +241,10 @@ class CityUrlExtraction(AbsExtraction):
         url_list = self.__CityLinkExtraction(jis_code)
         return url_list
     
-    def quitDriver(self) -> None:
+    def restart_driver(self) -> None:
+        self.driver.delete_all_cookies()
         self.driver.quit()
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
     
 class BigJunleExtraction(AbsExtraction):
     def __init__(self):
@@ -269,31 +273,36 @@ class BigJunleExtraction(AbsExtraction):
             list: 市区町村ごとの大ジャンルリンクのリスト\n
         """
         url_list = []
-        def get_href() -> None:
-            for url in city_list:
-                print(url)
-                self.driver.get(url)
-                wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
-                wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
-                a_tags = self.driver.find_elements_by_css_selector('div.l-side_contents_search_tooltip_inner > div > ul.l-side_contents_search_images > li > a')
-                add_links = [] 
-                for a in a_tags:
-                    add_links.append(a.get_attribute('href'))
-                url_list.append(add_links)    
+        def get_href(url:str) -> None:
+            print(url)
+            self.driver.get(url)
+            wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
+            wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
+            a_tags = self.driver.find_elements_by_css_selector('div.l-side_contents_search_tooltip_inner > div > ul.l-side_contents_search_images > li > a')
+            add_links = [] 
+            for a in a_tags:
+                add_links.append(a.get_attribute('href'))
+            url_list.append(add_links)    
         #FIXME:selenium timeout Exception が発生する↓。
-        try:
-            get_href()
-        except TimeoutException:
-            print("Timeout")
-            time.sleep(10)
-            self.driver.refresh()
-            get_href()
+        for url in city_list:
+            try:
+                get_href(url)
+            except TimeoutException:
+                print("タイムアウト")
+                time.sleep(300)
+                self.restart_driver()
+                get_href(url)
+        
+        self.driver.delete_all_cookies()
+        self.driver.quit()
             
         return url_list
     
-    def quitDriver(self) -> None:
+    def restart_driver(self) -> None:
+        self.driver.delete_all_cookies()
         self.driver.quit()
-
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        
 class SmallJunleExtraction(AbsExtraction):
     #TODO:現時点だと、URLの抽出処理全部が完了しないと次のリクエストを出せないようになっているため、時間がかかる。ここで抽出したＵＲＬをscrapy.Requestで投げるようにしたら終了を待たずにクロールできるかも。
     #TODO:GUI側で中止処理したときにdriver,browserを終了させるようにする。
@@ -325,7 +334,7 @@ class SmallJunleExtraction(AbsExtraction):
         driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
         
-        def get_href(url:str) -> None:
+        def get_href() -> None:
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
             a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
             for a in a_tags:
@@ -336,19 +345,21 @@ class SmallJunleExtraction(AbsExtraction):
             driver.get(url)
             #FIXME:selenium timeout Exception が発生する↓。
             try:
-                get_href(url)
+                get_href()
             except TimeoutException:
                 print("Timeout")
-                time.sleep(10)#5分待機
-                driver.refresh()
+                driver.delete_all_cookies()
+                driver.quit()
+                time.sleep(300)#5分待機
+                driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)                
                 driver.get(url)
-                get_href(url)
+                get_href()
                 
         driver.quit()
         print(result_list)
         return result_list
 
-    def quitDriver(self) -> None:
+    def restart_driver(self) -> None:
         self.driver.quit()
         
 class SeleniumMiddlewares():
@@ -378,9 +389,9 @@ class SeleniumMiddlewares():
             list: その都道府県の小ジャンルごとのURLリスト\n
         """
         city_list = self.city_ext.extraction(area)
-        self.city_ext.quitDriver()
+        self.city_ext.restart_driver()
         big_junle_list = self.big_junle_ext.extraction(city_list)
-        self.big_junle_ext.quitDriver()
+        self.big_junle_ext.restart_driver()
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
         apply_results = []
         for splitElm in big_junle_split_lists:
