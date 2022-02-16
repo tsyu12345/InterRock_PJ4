@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from selenium.webdriver.chrome import options
 from abc import ABCMeta, abstractmethod
 # from scrapy.http import HtmlResponse
 from selenium import webdriver
@@ -11,7 +10,7 @@ from selenium.common.exceptions import TimeoutException
 #from bs4 import BeautifulSoup as Soup
 #from JisCode import JisCode
 from multiprocessing import Pool, Manager, freeze_support
-import requests
+#import requests
 #import scrapy
 #import spiders.ekitenSpider as ekitenSpider
 import os
@@ -146,6 +145,7 @@ def list_split(n:int, l:list) -> list:
         
 
 #TODO: 自作middlewareの実行中に発生したエラーを捕捉してGUIに通知する。
+#TODO:一定時間起動後、403エラーが発生した場合、自動的にwebdriverを再起動する。
 class AbsExtraction(object, metaclass=ABCMeta):
     """Summary Line:\n
     クローラーの中間処理を実装する抽象クラス。
@@ -182,7 +182,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         pass
     
     @abstractmethod
-    def quitDriver(self) -> None:
+    def restart_driver(self) -> None:
         """Summary Line.\n
         ブラウザを終了する。\n
         """
@@ -195,7 +195,7 @@ class CityUrlExtraction(AbsExtraction):
         super(CityUrlExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         
-    def __CityLinkExtraction(self, pref_code:int) -> list:
+    def __CityLinkExtraction(self, pref_code:int) -> list[str]:
         """Summary Line.\n
         指定都道府県で、市区町村レベルのリンクを取得する際の処理コード。\n
         Args:\n
@@ -203,15 +203,26 @@ class CityUrlExtraction(AbsExtraction):
         Returns:\n
             list:市区町村レベルのリンクのリスト\n
         """
-        url = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
+        url:str = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
         wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
-        self.driver.get(url)
-        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
-        link_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a')
-        print(link_tags)
-        urls = []
-        for tag in link_tags:
-            urls.append(tag.get_attribute('href'))
+        urls:list[str] = []
+        
+        def get_href() -> None:
+            self.driver.get(url)
+            wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
+            link_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a')
+            print(link_tags)
+            for tag in link_tags:
+                urls.append(tag.get_attribute('href'))
+        #FIXME:selenium timeout Exception が発生する↓。
+        try:
+            get_href()
+        except TimeoutException:
+            print("タイムアウト")
+            time.sleep(10)
+            self.driver.refresh()
+            get_href()
+                
         return urls
         
     def extraction(self, pref_name:str) -> list:
@@ -249,7 +260,7 @@ class BigJunleExtraction(AbsExtraction):
         return result_list
             
 
-    def __big_junle_link_extraction(self, city_list:list) -> list:
+    def __big_junle_link_extraction(self, city_list:list[str]) -> list:
         """[summary]\n
         市区町村の大ジャンルリンクを抽出し、そのリンクのリストを返す処理。\n
         Args:\n
@@ -258,16 +269,26 @@ class BigJunleExtraction(AbsExtraction):
             list: 市区町村ごとの大ジャンルリンクのリスト\n
         """
         url_list = []
-        for url in city_list:
-            print(url)
-            self.driver.get(url)
-            wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
-            wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
-            a_tags = self.driver.find_elements_by_css_selector('div.l-side_contents_search_tooltip_inner > div > ul.l-side_contents_search_images > li > a')
-            add_links = [] 
-            for a in a_tags:
-                add_links.append(a.get_attribute('href'))
-            url_list.append(add_links)
+        def get_href() -> None:
+            for url in city_list:
+                print(url)
+                self.driver.get(url)
+                wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
+                wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
+                a_tags = self.driver.find_elements_by_css_selector('div.l-side_contents_search_tooltip_inner > div > ul.l-side_contents_search_images > li > a')
+                add_links = [] 
+                for a in a_tags:
+                    add_links.append(a.get_attribute('href'))
+                url_list.append(add_links)    
+        #FIXME:selenium timeout Exception が発生する↓。
+        try:
+            get_href()
+        except TimeoutException:
+            print("Timeout")
+            time.sleep(10)
+            self.driver.refresh()
+            get_href()
+            
         return url_list
     
     def quitDriver(self) -> None:
@@ -317,8 +338,9 @@ class SmallJunleExtraction(AbsExtraction):
             try:
                 get_href(url)
             except TimeoutException:
-                driver.quit()
-                time.sleep(300)#5分待機
+                print("Timeout")
+                time.sleep(10)#5分待機
+                driver.refresh()
                 driver.get(url)
                 get_href(url)
                 
