@@ -204,11 +204,11 @@ class CityUrlExtraction(AbsExtraction):
             list:市区町村レベルのリンクのリスト\n
         """
         url:str = 'https://www.ekiten.jp/area/a_prefecture' + str(pref_code) + '/'
-        wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
         urls:list[str] = []
         
         def get_href() -> None:
             self.driver.get(url)
+            wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
             link_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a')
             print(link_tags)
@@ -223,7 +223,7 @@ class CityUrlExtraction(AbsExtraction):
             self.restart_driver()
             get_href()
         
-        self.driver.delete_all_cookies()
+        
         self.driver.quit()
         return urls
         
@@ -242,7 +242,7 @@ class CityUrlExtraction(AbsExtraction):
         return url_list
     
     def restart_driver(self) -> None:
-        self.driver.delete_all_cookies()
+        
         self.driver.quit()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
     
@@ -293,13 +293,13 @@ class BigJunleExtraction(AbsExtraction):
                 self.restart_driver()
                 get_href(url)
         
-        self.driver.delete_all_cookies()
+        
         self.driver.quit()
             
         return url_list
     
     def restart_driver(self) -> None:
-        self.driver.delete_all_cookies()
+        
         self.driver.quit()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         
@@ -389,9 +389,9 @@ class SeleniumMiddlewares():
             list: その都道府県の小ジャンルごとのURLリスト\n
         """
         city_list = self.city_ext.extraction(area)
-        self.city_ext.restart_driver()
+
         big_junle_list = self.big_junle_ext.extraction(city_list)
-        self.big_junle_ext.restart_driver()
+        
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
         apply_results = []
         for splitElm in big_junle_split_lists:
@@ -419,7 +419,7 @@ class SeleniumMiddlewares():
         """
         result = []
         for result_list in apply_results:
-            result.append(result_list.get())
+            result.append(result_list.get())#TODO:結果の待機時間が長いとTimeOutExceptionが発生する。
             
         return result
         

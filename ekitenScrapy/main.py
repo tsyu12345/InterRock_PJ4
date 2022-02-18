@@ -77,6 +77,8 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg = maneger.Value('b', False) #中断のフラグ
         
+        self.crawler = CrawlerProcess(settings=self.settings)
+        
         
     def run(self) -> None:
         """[summary]\n
@@ -95,12 +97,10 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         result = self.middleware.run()
         crawl_url_list = list_split(4, result)
         
-        #スクレイピング処理を実行
-        crawler:CrawlerProcess = CrawlerProcess(settings=self.settings)
         for url_list in crawl_url_list:
-            crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, url_list)
+            self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, url_list)
             
-        crawler.start()
+        self.crawler.start()
         
         self.__finalize()
 
