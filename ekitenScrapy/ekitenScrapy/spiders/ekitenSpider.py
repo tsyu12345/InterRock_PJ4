@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+
 import scrapy
 from scrapy.exceptions import CloseSpider
 import threading as th
@@ -9,7 +10,7 @@ from ekitenScrapy.items import EkitenscrapyItem
 from ..middlewares import *
 from ..JisCode import JisCode
 
-
+#TODO:エラーハンドリング。
 
 
 def ArrayElementsReplace(array: list, target_str: str, replace_str:str) -> list:

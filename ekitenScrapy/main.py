@@ -1,4 +1,5 @@
 from __future__ import annotations
+from multiprocessing.managers import SyncManager, ValueProxy
 
 #Scrapy関係のインポート
 import scrapy.item
@@ -53,6 +54,8 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         junle(str): スクレイピングするジャンル\n
     """
     #TODO:itemの定義にしたがって、FIELDSの順番、変数名を変更する
+    #TODO:twisted.internet.error.CannotListenError: Couldn't listen on 127.0.0.1:6073: [WinError 10048]の修正。
+    #↑のエラーが発生するため、Spider実行時エラーが発生している。
     
     FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in ExcelEdit.COLUMN_MENUS.keys()]
     
@@ -71,11 +74,11 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
         
         #各フラグ、カウンタ変数の定義
-        maneger = Manager()
-        self.counter = maneger.Value('i', 0) #現在の進捗状況のカウンター
-        self.total_counter = maneger.Value('i', 1) #スクレイピングするサイトの総数
-        self.loading_flg = maneger.Value('b', False) #ローディング中かどうかのフラグ
-        self.end_flg = maneger.Value('b', False) #中断のフラグ
+        maneger:SyncManager = Manager()
+        self.counter:ValueProxy[int] = maneger.Value('i', 0) #現在の進捗状況のカウンター
+        self.total_counter:ValueProxy[int] = maneger.Value('i', 1) #スクレイピングするサイトの総数
+        self.loading_flg:ValueProxy[bool] = maneger.Value('b', False) #ローディング中かどうかのフラグ
+        self.end_flg:ValueProxy[bool] = maneger.Value('b', False) #中断のフラグ
         
         self.crawler = CrawlerProcess(settings=self.settings)
         
@@ -115,88 +118,34 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
     def stop(self):
         self.end_flg.value = True
         
-#GUI claases
-
-class LoadingAnimation:
-    """[summary]\n
-    クロール待機中や、サーバーブロック発生時の待機期間中にローディングアニメーションを表示させる。\n
-    """
-    Y:float = 0.0
-    X:float = 60.0
-    
-    def __init__(self, gif_path:str, msg:str, position:tuple=((X,0),(Y, 0))) -> gui.Window:
-        """[summary]\n
-        コンストラクタ。\n
-        素材のPath,表示位置を指定してインスタンスを生成する。\n
-        Args:\n
-            gif_path (str): 素材のPath\ns
-            msg (str): 表示するメッセージ\n
-            position (tuple, optional): 画像表示位置,position:relative;. Defaults to ((X, Y)).\n
-            param:X = 50\n
-            param:Y = 0\ns
-        """
-        self.animation_gif = gif_path 
-        self.msg = msg
-        self.pad = position
-        self.window = gui.Window(
-            'リクエスト待機中…', 
-            layout=self.__lay_out(),
-            no_titlebar=False,
-        )
-        return self.window
-        
-    def __lay_out(self) -> list:
-        """[summary]\n
-        レイアウトの定義。\n
-        Returns:\n
-            list: GUIレイアウトの２次元配列
-        """
-        L = [
-            [gui.Image(key='loading',pad=self.pad, size=(50,50))],
-            [gui.Text(self.msg, key='msg')],
-        ]
-        return L
-
-    def display(self, close_flg:any) -> None:
-        """[summary]\n
-        ローディングGUIを表示する。\n
-        args:\n
-            close_flg (ValueProxy[bool]): 中断フラグ\n
-        """
-        
-        #take image element
-        img:gui.Image = self.window['loading']
-        
-        
-        event, value = self.window.read(timeout=60)
-        img.update_animation([self.animation_gif], 60)
-        
-        
 class EkitenInfoExtractionApplication(object):
     """
     Summary Line\n
     メインウィンドウを定義する。
     """
+    
     def __init__(self) -> None:
         #windowの初期化。各コンポーネントの生成。
         gui.theme('DefaultNoMoreNagging')
-        self.width = 700
-        self.height = 300
-        self.area_menu = AreaSelect()
-        self.pref_select_window = SelectPrefectureWindow()
-        self.junle_menu = BigJunleSelect()
-        self.path_menu = PathSelect()
+        self.width:int = 700
+        self.height:int = 300
+        
+        
+        #イベントハンドラの登録。
         
         #状態フラグの初期化
-        self.runnung = False
-        self.detati = False
-        self.compleate = False
+        self.runnung:bool = False
+        self.detati:bool = False
+        self.compleate:bool = False
         
-        layout = StartUpWindowFrame().get_layout()
+        self.start_window = StartUpWindow()
         
+        self.event_handlar:dict = {
+            self.start_window.area_select.SELECT_BTN_KEY:self.start_window.area_select.display_area_select_window,
+        }
         self.window = gui.Window(
             'エキテン掲載情報 抽出ツール', 
-            layout=layout, 
+            layout=self.start_window.layout,
             icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
             debugger_enabled=True,
         )
@@ -259,6 +208,8 @@ class EkitenInfoExtractionApplication(object):
                 break
     
     def __input_check(self, value):
+        #TODO:各オブジェクトのkey値変更を反映させる。
+        
         checker = [False, False, False]
         
         if value['pref_name'] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value['pref_name']) == None:
@@ -299,7 +250,7 @@ class EkitenInfoExtractionApplication(object):
             gui.popup("処理が完了しました。\n保存先:" + value['path'], title="処理完了")
     
     def __event_listener(self, event, value):
-        #TODO:各イベント処理をコンポーネントのクラス内にバインドする。
+        #TODO:各イベントハンドラーの設定を反映させる。
         """[summary]\n
         ウィンドウで発生したイベントごとの処理を呼び出す。\n
         """

@@ -45,6 +45,10 @@ class RequestTotalCount:
         """
         for url in self.request_list:
             response = requests.get(url)
+            if response.status_code != 200:
+                print('error')
+                raise RequestTotalCountError("リクエストに失敗しました。")
+            print("statu code :" + str(response.status_code))
             html = response.text
             count = self.__extraction_total(html)
             self.total_counter += count
@@ -66,6 +70,12 @@ class RequestTotalCount:
         count = int(count_str)
         return count
 
+class RequestTotalCountError(Exception):
+    """_summary_\n
+    ステータスコードが200以外の場合に発生する例外クラス
+    """
+    pass
+    
 
 if __name__ == '__main__':
     test = RequestTotalCount(['徳島県'])

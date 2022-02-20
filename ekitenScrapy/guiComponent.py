@@ -1,49 +1,41 @@
 from __future__ import annotations
-
+from AbstractGUI import *
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
 from abc import ABC, ABCMeta, abstractmethod
 
-class AbsGUIComponent(object, metaclass=ABCMeta):
-    """[summary]\n
-    各GUIコンポーネントの基底抽象クラス定義。
-    """
-    
-    @abstractmethod
-    def _lay_out(self) -> list:
-        """
-        protectedメソッド。
-        GUIコンポーネントのレイアウト配列を返す。
-        """
-        pass
 
 class AreaSelect(AbsGUIComponent):
     """
     Summary:\n
     都道府県選択をおこなうGUIコンポーネント
     """
-    
-    def __init__(self) -> None:
-        pref_str:str = '北海道,青森県,岩手県,宮城県,秋田県,山形県,福島県,茨城県,栃木県,群馬県,埼玉県,千葉県,東京都,神奈川県,新潟県,富山県,石川県,福井県,山梨県,長野県,岐阜県,静岡県,愛知県,三重県,滋賀県,京都府,大阪府,兵庫県,奈良県,和歌山県,鳥取県,島根県,岡山県,広島県,山口県,徳島県,香川県,愛媛県,高知県,福岡県,佐賀県,長崎県,熊本県,大分県,宮崎県,鹿児島県,沖縄県'
-        self.prefecture_list:list = pref_str.split(',')
-        
-    
+    INPUT_KEY = "selected_pref"
+    SELECT_BTN_KEY = "select_btn"
+
     def _lay_out(self):
         L = [
                 [gui.Text("都道府県", key='pref_title', size=(60, None))],
-                [gui.InputText(key=('pref_name')), gui.Button('エリア選択')],
+                [gui.InputText(key=(self.INPUT_KEY)), gui.Button(self.SELECT_BTN_KEY)],
             ]
         return L
-
     
-class SelectPrefectureWindow(AbsGUIComponent):
+    def display_area_select_window(self):
+        window = SelectPrefectureWindow()
+        window.display()
+
+class SelectPrefectureWindow(AbsWindowComponent):
     """[summary]\n
     別ウィンドウで表示する、都道府県選択のGUIコンポーネント。
     """
+    OK_BTN_KEY:str = 'OK'
+    upper_row:int = 8
+    upper_col:int = 6
     
     def __init__(self) -> None:
-        self.display_row:int = 8 #表示可能行数
-        self.display_col:int = 6 #表示可能列数
+        self.event_handler:dict = {
+            self.OK_BTN_KEY: self.__save_selected_pref,
+        }
         
         pref_str:str = '北海道,青森県,岩手県,宮城県,秋田県,山形県,福島県,茨城県,栃木県,群馬県,埼玉県,千葉県,東京都,神奈川県,新潟県,富山県,石川県,福井県,山梨県,長野県,岐阜県,静岡県,愛知県,三重県,滋賀県,京都府,大阪府,兵庫県,奈良県,和歌山県,鳥取県,島根県,岡山県,広島県,山口県,徳島県,香川県,愛媛県,高知県,福岡県,佐賀県,長崎県,熊本県,大分県,宮崎県,鹿児島県,沖縄県'
         self.prefecture_list:list[str] = pref_str.split(',')
@@ -56,26 +48,30 @@ class SelectPrefectureWindow(AbsGUIComponent):
         
         L:list = []
         index = 0
-        for i in range(self.display_row):
+        for i in range(self.upper_row):
             add = []
-            for j in range(self.display_col):
+            for j in range(self.upper_col):
                 if index != 47:
                     add.append(gui.Checkbox(self.prefecture_list[index], key=self.prefecture_list[index]))
                     index += 1
             L.append(add)
         
-        L.append([gui.Button('OK', key='OK')])
+        L.append([gui.Button('OK', key=self.OK_BTN_KEY)])
         return L
+    
+    def __save_selected_pref(self, value:dict) -> None:
+        """
+        選択された都道府県を保存する。
+        """
+        for v in value.keys():
+            if value[v] == True and v not in self.selected_pref:
+                self.selected_pref.append(v)
     
     def display(self) -> list[str]:
         
         while True:
             event, value = self.window.read()
-            print(event)
-            print(value)
-            for v in value.keys():
-                if value[v] == True and v not in self.selected_pref:
-                    self.selected_pref.append(v)
+            self.event_handler[event](value)
             if event in ("Quit", None, 'OK'):
                 break
         self.window.close()
@@ -86,6 +82,8 @@ class BigJunleSelect(AbsGUIComponent):
     Summary Line\n 
     ジャンル選択のメニューバー定義。
     """
+    JUNLE_BTN_KEY:str = "Big_junle"
+    
     def __init__(self):
         self.junle = [
             "全ジャンル抽出",
@@ -109,7 +107,7 @@ class BigJunleSelect(AbsGUIComponent):
     def _lay_out(self):
         L = [
             [gui.Text("抽出ジャンル選択", size=(60, None), key='junle_title')],
-            [gui.InputCombo(self.junle, key=("Big_junle"), size=(40, None))]
+            [gui.InputCombo(self.junle, key=(self.JUNLE_BTN_KEY), size=(40, None))]
         ]
         return L
     
@@ -118,30 +116,39 @@ class PathSelect(AbsGUIComponent):
     Summary Line\n
     保存先のフォルダ選択を行うGUIボタンの定義。
     """
-    def _lay_out(self):
+    INPUT_KEY:str = "Path"
+    
+    def _lay_out(self) -> list[list[gui.Text], list[gui.InputText, gui.Button]]:
         L = [
             [gui.Text("フォルダ選択", key='path_title', size=(60, None))],
-            [gui.InputText(key='path'), gui.SaveAs("選択", file_types=( [('Excelファイル','*.xlsx')]))]
+            [gui.InputText(key=self.INPUT_KEY), gui.SaveAs("選択", file_types=( [('Excelファイル','*.xlsx')]))]
         ]
         return L
 
+class RuntimeWindow(AbsWindowComponent):
+    """_summary_\n
+    実行中に表示するウィンドウクラス。
+    """
+    pass
 
-class StartUpWindowFrame(AbsGUIComponent):
+class StartUpWindow(AbsWindowComponent):
     """[summary]\n
-    初期設定画面のGUI画面の定義。各種GUIコンポーネントを組み合わせている。
+    初期設定画面のGUI画面の定義。
     """
     #TODO:現在暗黙的にコンポーネント内のlayout配列の要素数が2であることを前提としているのでこれを直す。
     
     def __init__(self) -> None:
-        self.area_menu = AreaSelect()
-        self.junle_menu = BigJunleSelect()
-        self.path_menu = PathSelect()
+        self.area_select:AreaSelect = AreaSelect()
+        self.big_junle_select:BigJunleSelect = BigJunleSelect()
+        self.path_select:PathSelect = PathSelect()
+        
+        self.layout = self._lay_out()
     
     def _lay_out(self) -> list:
         
-        area_layout = self.area_menu._lay_out()
-        junle_layout = self.junle_menu._lay_out()
-        path_layout = self.path_menu._lay_out()
+        area_layout = self.area_select._lay_out()
+        junle_layout = self.big_junle_select._lay_out()
+        path_layout = self.path_select._lay_out()
         
         L = [
                 [
@@ -165,14 +172,33 @@ class StartUpWindowFrame(AbsGUIComponent):
         
         return L
     
+    
     def get_layout(self) -> list:
         """[summary]\n
         画面のレイアウトを返す。
         """
         return self._lay_out()
-        
-        
 
+class LoadingAnimation(AbsGUIComponent):
+    """_summary_\n
+    ローディングアニメーションを表示するGUIコンポーネント。
+    未実装。
+    Args:
+        AbsGUIComponent (_type_): _description_
+    """
+    def __init__(self, msg:str, size:tuple[int, int], source_path:str) -> None:
+        self.msg = msg
+        self.width = size[0]
+        self.height = size[1]
+        self.source_path = source_path
+        
+    def _lay_out(self) -> list[list[any]]:
+        
+        L:list[list[any]] = [
+            []
+        ]
+        
+        return L
 
 """
 class LogOutputWindow(AbsGUIComponent):

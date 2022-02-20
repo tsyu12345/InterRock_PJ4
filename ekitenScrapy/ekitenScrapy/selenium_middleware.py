@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 #from bs4 import BeautifulSoup as Soup
 #from JisCode import JisCode
-from multiprocessing import Pool, Manager, freeze_support
+from multiprocessing import Pool, Manager, freeze_support, TimeoutError
 #import requests
 #import scrapy
 #import spiders.ekitenSpider as ekitenSpider
@@ -419,8 +419,11 @@ class SeleniumMiddlewares():
         """
         result = []
         for result_list in apply_results:
-            result.append(result_list.get())#TODO:結果の待機時間が長いとTimeOutExceptionが発生する。
-            
+            try:
+                result.append(result_list.get())#TODO:結果の待機時間が長いとTimeOutExceptionが発生する。
+            except TimeoutError:
+                print("async time out error")
+                
         return result
         
             
