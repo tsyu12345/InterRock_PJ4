@@ -137,6 +137,8 @@ class StartUpWindow(AbsWindowComponent):
     """
     #TODO:現在暗黙的にコンポーネント内のlayout配列の要素数が2であることを前提としているのでこれを直す。
     
+    EXECUTE_BTN_KEY:str = "execute"
+    
     def __init__(self) -> None:
         self.area_select:AreaSelect = AreaSelect()
         self.big_junle_select:BigJunleSelect = BigJunleSelect()
@@ -149,6 +151,14 @@ class StartUpWindow(AbsWindowComponent):
             icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
             debugger_enabled=True,
         )
+        
+        #状態変数の初期化。
+        self.active:bool = True
+        self.deactivate:bool = False
+        
+        self.value:dict = {}
+        self.event:str = None
+        
     
     def _lay_out(self) -> list:
         
@@ -172,23 +182,25 @@ class StartUpWindow(AbsWindowComponent):
                     )
                 ],
                 [
-                    gui.Button("抽出実行")
+                    gui.Button("抽出実行", key=self.EXECUTE_BTN_KEY),
                 ]
             ]
         
         return L
     
     def display(self) -> None:
-        while True:
-            event, value = self.window.read()
-            if event in ("Quit", None):
+        while self.active:
+            self.event, self.value = self.window.read()
+            if self.event in ("Quit", None) or self.deactivate:
+                self.active = False
                 break
+        self.__dispose()
+        
     
-    def get_layout(self) -> list:
-        """[summary]\n
-        画面のレイアウトを返す。
-        """
-        return self._lay_out()
+    def __dispose(self) -> None:
+        self.window.close()
+    
+    
 
 class LoadingAnimation(AbsGUIComponent):
     """_summary_\n

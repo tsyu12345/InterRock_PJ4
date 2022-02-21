@@ -34,3 +34,10 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
         ウィンドウを表示する
         """
         pass
+    
+    @abstractmethod
+    def dispose(self) -> None:
+        """_summary_\n
+        ウィンドウを破棄する
+        """
+        pass
