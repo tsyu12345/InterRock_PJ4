@@ -143,6 +143,12 @@ class StartUpWindow(AbsWindowComponent):
         self.path_select:PathSelect = PathSelect()
         
         self.layout = self._lay_out()
+        self.window = gui.Window(
+            'エキテン掲載情報 抽出ツール', 
+            layout=self.layout,
+            icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
+            debugger_enabled=True,
+        )
     
     def _lay_out(self) -> list:
         
@@ -172,6 +178,11 @@ class StartUpWindow(AbsWindowComponent):
         
         return L
     
+    def display(self) -> None:
+        while True:
+            event, value = self.window.read()
+            if event in ("Quit", None):
+                break
     
     def get_layout(self) -> list:
         """[summary]\n

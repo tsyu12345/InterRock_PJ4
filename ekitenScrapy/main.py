@@ -65,13 +65,14 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.save_path = save_path
         
         #middlewareインスタンスの生成
-        self.middleware = SeleniumMiddlewares(self.pref_list, 4)
+        #self.middleware = SeleniumMiddlewares(self.pref_list, 4)
         
         #Spider settings
         self.settings = get_project_settings()
         self.settings.set('FEED_FORMAT', 'xlsx')
         self.settings.set('FEED_URI', save_path)
         self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
+        self.settings.set('TELNETCONSOLE_ENABLED', False)
         
         #各フラグ、カウンタ変数の定義
         maneger:SyncManager = Manager()
@@ -97,12 +98,14 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         
         self.total_counter.value = count
         
-        result = self.middleware.run()
-        crawl_url_list = list_split(4, result)
+        #result = self.middleware.run()
+        #crawl_url_list = list_split(4, result)#4つのクローラーで並列できるように分割
         
-        for url_list in crawl_url_list:
-            self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, url_list)
-            
+        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
+        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
+        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
+        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
+        
         self.crawler.start()
         
         self.__finalize()
