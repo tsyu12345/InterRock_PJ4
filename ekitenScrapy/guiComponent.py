@@ -188,16 +188,25 @@ class StartUpWindow(AbsWindowComponent):
         
         return L
     
-    def display(self) -> None:
-        while self.active:
-            self.event, self.value = self.window.read()
-            if self.event in ("Quit", None) or self.deactivate:
-                self.active = False
-                break
-        self.__dispose()
+    def __event_listener(self, key:str, callback:callable) -> None:
+        #TODO:callback関数に引数を渡せるようにする。
+        """
+        [summary]\n
+        イベントリスナーを設定する。\n
+        Args:\n
+            key: イベントキー\n
+            callback: イベントハンドラー\n
+        """
+        if self.event == key:
+            callback()
+        
+        
         
     
-    def __dispose(self) -> None:
+    def display(self) -> None:
+        self.event, self.value = self.window.read()
+        
+    def dispose(self) -> None:
         self.window.close()
     
     
