@@ -19,6 +19,9 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
     windowレベルの基底抽象クラス定義。
     """
     
+    def __init__(self):
+        self.__event_handler:dict = {}
+    
     @abstractmethod
     def _lay_out(self) -> list[list[any]]:
         """_summary_\n
@@ -29,9 +32,21 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
         pass
     
     @abstractmethod
+    def addEventListener(self, key:str, callback:callable, *args) -> None:
+        """_summary_\n
+        イベントリスナーを設定する。\n
+        Args:\n
+            key: イベントキー\n
+            callback: イベントハンドラー\n
+            args: イベントハンドラーに渡す引数\n
+        """
+        pass
+    
+    @abstractmethod
     def display(self) -> None:
         """_summary_\n
-        ウィンドウを表示する
+        ウィンドウを表示する.
+        must use in while loop.
         """
         pass
     

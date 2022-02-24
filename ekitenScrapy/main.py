@@ -143,17 +143,7 @@ class EkitenInfoExtractionApplication(object):
         
         self.start_window = StartUpWindow()
         
-        self.event_handlar:dict = {
-            self.start_window.area_select.SELECT_BTN_KEY:self.start_window.area_select.display_area_select_window,
-        }
-        self.window = gui.Window(
-            'エキテン掲載情報 抽出ツール', 
-            layout=self.start_window.layout,
-            icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
-            debugger_enabled=True,
-        )
-    
-    
+        
     def __process(self, value, event):
         """[summary]\n
         スパイダー呼び出し、スパイダー実行中のプログレスバーを表示。
@@ -271,28 +261,25 @@ class EkitenInfoExtractionApplication(object):
                 self.__process(value, event)
                 self.__compleate_popup(value)
             
-                    
+    
     def main_menu(self) -> None:
         """[summary]\n
         メインウィンドウを表示し、全体の流れを制御する。
         """
-        while self.compleate != True:
-            try:
-                event, value = self.window.read()
-                self.__event_listener(event, value)
-                
-                if event in ("Quit", None):#Quit window
-                    break
-            except:#エラー発生時
-                error_log = traceback.format_exc()
-                print(error_log)
-                popup = ErrorPopup(error_log)
-                popup.display()
+        self.start_window.addEventListener(
+                self.start_window.area_select.SELECT_BTN_KEY,
+                self.start_window.area_select.display_area_select_window,
+        )
+        while True:
+            self.start_window.display()
+            if self.start_window.event in ("Quit", None):
+                self.start_window.dispose()
                 break
-        
-        #終了処理
-        self.window.close()
         sys.exit()
+            
+            
+            
+        
         
         
 #main call

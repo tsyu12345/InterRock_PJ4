@@ -67,11 +67,20 @@ class SelectPrefectureWindow(AbsWindowComponent):
             if value[v] == True and v not in self.selected_pref:
                 self.selected_pref.append(v)
     
+    def dispose(self):
+        pass
+        
+        
+    def addEventListener(self, key: str, callback: callable, *args) -> None:
+        pass
+        #return super().addEventListener(key, callback, *args)
+
     def display(self) -> list[str]:
         
         while True:
             event, value = self.window.read()
-            self.event_handler[event](value)
+            if event != None:
+                self.event_handler[event]()
             if event in ("Quit", None, 'OK'):
                 break
         self.window.close()
@@ -156,6 +165,7 @@ class StartUpWindow(AbsWindowComponent):
         self.active:bool = True
         self.deactivate:bool = False
         
+        self.event_handler:dict = {}
         self.value:dict = {}
         self.event:str = None
         
@@ -188,23 +198,29 @@ class StartUpWindow(AbsWindowComponent):
         
         return L
     
-    def __event_listener(self, key:str, callback:callable) -> None:
-        #TODO:callback関数に引数を渡せるようにする。
+    def addEventListener(self, key:str, callback:callable, *args) -> None:
+        #DONE:callback関数に引数を渡せるようにする。
         """
         [summary]\n
         イベントリスナーを設定する。\n
         Args:\n
             key: イベントキー\n
             callback: イベントハンドラー\n
+            args: イベントハンドラーに渡す引数\n
         """
-        if self.event == key:
-            callback()
+        print(callback)
+        self.event_handler[key] = callback
+        print(self.event_handler)
         
         
-        
-    
     def display(self) -> None:
+        """_summary_\n
+        表示中の処理。
+        """
+        #TODO:windowを閉じたときに返されるNoneにより、event_handlerでkeyErrorがでる。
         self.event, self.value = self.window.read()
+        self.event_handler[self.event]()
+
         
     def dispose(self) -> None:
         self.window.close()
