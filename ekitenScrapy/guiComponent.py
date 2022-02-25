@@ -1,4 +1,5 @@
 from __future__ import annotations
+from re import S
 from AbstractGUI import *
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
@@ -33,7 +34,7 @@ class SelectPrefectureWindow(AbsWindowComponent):
     upper_col:int = 6
     
     def __init__(self) -> None:
-        self.event_handler:dict = {
+        self.__event_handler:dict = {
             self.OK_BTN_KEY: self.__save_selected_pref,
         }
         
@@ -42,6 +43,9 @@ class SelectPrefectureWindow(AbsWindowComponent):
         
         self.window = gui.Window('エリア選択', layout=self._lay_out()) #Windowインスタンス
         self.selected_pref:list[str] = []
+        
+        self.event:str = None
+        self.value:dict = {}
         
     
     def _lay_out(self) -> list:
@@ -68,6 +72,7 @@ class SelectPrefectureWindow(AbsWindowComponent):
                 self.selected_pref.append(v)
     
     def dispose(self):
+        self.window.close()
         pass
         
         
@@ -76,16 +81,10 @@ class SelectPrefectureWindow(AbsWindowComponent):
         #return super().addEventListener(key, callback, *args)
 
     def display(self) -> list[str]:
+        self.event, self.value = self.window.read()
         
-        while True:
-            event, value = self.window.read()
-            if event != None:
-                self.event_handler[event]()
-            if event in ("Quit", None, 'OK'):
-                break
-        self.window.close()
-        return self.selected_pref
-        
+        if self.event in self.__event_handler:
+            self.__event_handler[self.event](self.value)
 class BigJunleSelect(AbsGUIComponent):
     """
     Summary Line\n 
@@ -149,6 +148,8 @@ class StartUpWindow(AbsWindowComponent):
     EXECUTE_BTN_KEY:str = "execute"
     
     def __init__(self) -> None:
+        super(AbsWindowComponent).__init__()
+        
         self.area_select:AreaSelect = AreaSelect()
         self.big_junle_select:BigJunleSelect = BigJunleSelect()
         self.path_select:PathSelect = PathSelect()
@@ -165,18 +166,17 @@ class StartUpWindow(AbsWindowComponent):
         self.active:bool = True
         self.deactivate:bool = False
         
-        self.event_handler:dict = {}
         self.value:dict = {}
         self.event:str = None
         
     
     def _lay_out(self) -> list:
         
-        area_layout = self.area_select._lay_out()
-        junle_layout = self.big_junle_select._lay_out()
-        path_layout = self.path_select._lay_out()
+        area_layout:list = self.area_select._lay_out()
+        junle_layout:list = self.big_junle_select._lay_out()
+        path_layout:list = self.path_select._lay_out()
         
-        L = [
+        L:list[list[gui.Frame | gui.Button]] = [
                 [
                     gui.Frame(
                         "抽出条件", [
@@ -198,29 +198,18 @@ class StartUpWindow(AbsWindowComponent):
         
         return L
     
-    def addEventListener(self, key:str, callback:callable, *args) -> None:
-        #DONE:callback関数に引数を渡せるようにする。
-        """
-        [summary]\n
-        イベントリスナーを設定する。\n
-        Args:\n
-            key: イベントキー\n
-            callback: イベントハンドラー\n
-            args: イベントハンドラーに渡す引数\n
-        """
-        print(callback)
-        self.event_handler[key] = callback
-        print(self.event_handler)
         
         
     def display(self) -> None:
         """_summary_\n
         表示中の処理。
         """
-        #TODO:windowを閉じたときに返されるNoneにより、event_handlerでkeyErrorがでる。
+        #TODO:windowを閉じたときに返されるNoneにより、__event_handlerでkeyErrorがでる。
         self.event, self.value = self.window.read()
-        self.event_handler[self.event]()
-
+        
+        if self.event in self.__event_handler:
+            print("HEY")
+            
         
     def dispose(self) -> None:
         self.window.close()
