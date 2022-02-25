@@ -1,5 +1,6 @@
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
+from PySimpleGUI.PySimpleGUI import Window
 
 class AbsGUIComponent(object, metaclass=ABCMeta):
     """[summary]\n
@@ -19,8 +20,11 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
     windowレベルの基底抽象クラス定義。
     """
     
-    def __init__(self)-> None:
-        self.__event_handler:dict[str, dict[callable , tuple]] = {}
+    def __init__(self, window_name=None)-> None:
+        self.event_handler:dict[str, list[callable , tuple]] = {}
+        self.event:str = ""
+        self.value:dict[any] = {}
+        self.window:Window = Window(window_name)
     
     @abstractmethod
     def _lay_out(self) -> list[list[any]]:
@@ -39,16 +43,30 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
             callback: イベントハンドラー\n
             args: イベントハンドラーに渡す引数\n
         """
-        self.__event_handler[key] = {callback : args}
-        print(self.__event_handler)
+        self.event_handler[key] = [callback, args]
+        print(self.event_handler)
+        
+    def __catchEvent(self) -> None:
+        """_summary_\n
+        イベントをキャッチする。\n
+        """
+        if self.event in self.event_handler:
+            
+            callback:callable = self.event_handler[self.event][0]
+            args:tuple = self.event_handler[self.event][1]
+            
+            if args == ():
+                callback()
+            else:
+                callback(args)
     
-    @abstractmethod
     def display(self) -> None:
         """_summary_\n
         ウィンドウを表示する.
         must use in while loop.
         """
-        pass
+        self.event, self.value = self.window.read()
+        self.__catchEvent()
     
     @abstractmethod
     def dispose(self) -> None:

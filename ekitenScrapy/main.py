@@ -126,6 +126,7 @@ class EkitenInfoExtractionApplication(object):
     Summary Line\n
     メインウィンドウを定義する。
     """
+    APPLICATION_NAME:str = "エキテン掲載情報スクレイピングツール@"
     
     def __init__(self) -> None:
         #windowの初期化。各コンポーネントの生成。
@@ -134,15 +135,14 @@ class EkitenInfoExtractionApplication(object):
         self.height:int = 300
         
         
-        #イベントハンドラの登録。
-        
         #状態フラグの初期化
         self.runnung:bool = False
         self.detati:bool = False
         self.compleate:bool = False
         
-        self.start_window = StartUpWindow()
+        self.menu_window = StartUpWindow(self.APPLICATION_NAME)
         
+        self.target_pref_list:list[str] = []
         
     def __process(self, value, event):
         """[summary]\n
@@ -242,7 +242,7 @@ class EkitenInfoExtractionApplication(object):
         else:
             gui.popup("処理が完了しました。\n保存先:" + value['path'], title="処理完了")
     
-    def __event_listener(self, event, value):
+    
         #TODO:各イベントハンドラーの設定を反映させる。
         """[summary]\n
         ウィンドウで発生したイベントごとの処理を呼び出す。\n
@@ -261,20 +261,33 @@ class EkitenInfoExtractionApplication(object):
                 self.__process(value, event)
                 self.__compleate_popup(value)
             
-    
+    def open_pref_select_window(self):
+        select_pref_widow = SelectPrefectureWindow(self.APPLICATION_NAME)
+        select_pref_widow.addEventListener(select_pref_widow.OK_BTN_KEY, select_pref_widow.dispose)
+        select_pref_widow.display()
+        = select_pref_widow.selected_pref
+        
     def main_menu(self) -> None:
         """[summary]\n
         メインウィンドウを表示し、全体の流れを制御する。
         """
-        self.start_window.addEventListener(
-                self.start_window.area_select.SELECT_BTN_KEY,
-                self.start_window.area_select.display_area_select_window,
+        self.menu_window.addEventListener(
+            self.menu_window.area_select.SELECT_BTN_KEY, 
+            self.open_pref_select_window,
         )
+        
+        #TODO:都道府県選択ボタンコンポーネントで、都道府県選択ウィンドウを表示するのをやめる。
+        
+        
+        
         while True:
-            self.start_window.display()
-            if self.start_window.event in ("Quit", None):
-                self.start_window.dispose()
+            
+            self.menu_window.display()
+            
+            if self.menu_window.event in ("Quit", None):
+                self.menu_window.dispose()
                 break
+            
         sys.exit()
             
             

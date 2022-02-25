@@ -1,5 +1,4 @@
 from __future__ import annotations
-from re import S
 from AbstractGUI import *
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
@@ -17,74 +16,11 @@ class AreaSelect(AbsGUIComponent):
     def _lay_out(self):
         L = [
                 [gui.Text("都道府県", key='pref_title', size=(60, None))],
-                [gui.InputText(key=(self.INPUT_KEY)), gui.Button(self.SELECT_BTN_KEY)],
+                [gui.InputText(key=(self.INPUT_KEY)), gui.Button("エリア選択", key=self.SELECT_BTN_KEY)],
             ]
         return L
     
-    def display_area_select_window(self):
-        window = SelectPrefectureWindow()
-        window.display()
 
-class SelectPrefectureWindow(AbsWindowComponent):
-    """[summary]\n
-    別ウィンドウで表示する、都道府県選択のGUIコンポーネント。
-    """
-    OK_BTN_KEY:str = 'OK'
-    upper_row:int = 8
-    upper_col:int = 6
-    
-    def __init__(self) -> None:
-        self.__event_handler:dict = {
-            self.OK_BTN_KEY: self.__save_selected_pref,
-        }
-        
-        pref_str:str = '北海道,青森県,岩手県,宮城県,秋田県,山形県,福島県,茨城県,栃木県,群馬県,埼玉県,千葉県,東京都,神奈川県,新潟県,富山県,石川県,福井県,山梨県,長野県,岐阜県,静岡県,愛知県,三重県,滋賀県,京都府,大阪府,兵庫県,奈良県,和歌山県,鳥取県,島根県,岡山県,広島県,山口県,徳島県,香川県,愛媛県,高知県,福岡県,佐賀県,長崎県,熊本県,大分県,宮崎県,鹿児島県,沖縄県'
-        self.prefecture_list:list[str] = pref_str.split(',')
-        
-        self.window = gui.Window('エリア選択', layout=self._lay_out()) #Windowインスタンス
-        self.selected_pref:list[str] = []
-        
-        self.event:str = None
-        self.value:dict = {}
-        
-    
-    def _lay_out(self) -> list:
-        
-        L:list = []
-        index = 0
-        for i in range(self.upper_row):
-            add = []
-            for j in range(self.upper_col):
-                if index != 47:
-                    add.append(gui.Checkbox(self.prefecture_list[index], key=self.prefecture_list[index]))
-                    index += 1
-            L.append(add)
-        
-        L.append([gui.Button('OK', key=self.OK_BTN_KEY)])
-        return L
-    
-    def __save_selected_pref(self, value:dict) -> None:
-        """
-        選択された都道府県を保存する。
-        """
-        for v in value.keys():
-            if value[v] == True and v not in self.selected_pref:
-                self.selected_pref.append(v)
-    
-    def dispose(self):
-        self.window.close()
-        pass
-        
-        
-    def addEventListener(self, key: str, callback: callable, *args) -> None:
-        pass
-        #return super().addEventListener(key, callback, *args)
-
-    def display(self) -> list[str]:
-        self.event, self.value = self.window.read()
-        
-        if self.event in self.__event_handler:
-            self.__event_handler[self.event](self.value)
 class BigJunleSelect(AbsGUIComponent):
     """
     Summary Line\n 
@@ -95,6 +31,7 @@ class BigJunleSelect(AbsGUIComponent):
     def __init__(self):
         self.junle = [
             "全ジャンル抽出",
+            "リラク・ボディケア",
         ]
         """以下は後日追加予定↓
             "リラク・ボディケア",
@@ -132,6 +69,61 @@ class PathSelect(AbsGUIComponent):
             [gui.InputText(key=self.INPUT_KEY), gui.SaveAs("選択", file_types=( [('Excelファイル','*.xlsx')]))]
         ]
         return L
+class SelectPrefectureWindow(AbsWindowComponent):
+    """[summary]\n
+    別ウィンドウで表示する、都道府県選択のWindowコンポーネント。
+    """
+    CUSTOM_WINDOW_TITLE = "エリア選択"
+    OK_BTN_KEY:str = 'select-pref-OK'
+    upper_row:int = 8
+    upper_col:int = 6
+    
+    def __init__(self, title:str) -> None:
+        super().__init__()
+        pref_str:str = '北海道,青森県,岩手県,宮城県,秋田県,山形県,福島県,茨城県,栃木県,群馬県,埼玉県,千葉県,東京都,神奈川県,新潟県,富山県,石川県,福井県,山梨県,長野県,岐阜県,静岡県,愛知県,三重県,滋賀県,京都府,大阪府,兵庫県,奈良県,和歌山県,鳥取県,島根県,岡山県,広島県,山口県,徳島県,香川県,愛媛県,高知県,福岡県,佐賀県,長崎県,熊本県,大分県,宮崎県,鹿児島県,沖縄県'
+        self.prefecture_list:list[str] = pref_str.split(',')
+        
+        self.window = gui.Window(
+            title + self.CUSTOM_WINDOW_TITLE, 
+            layout=self._lay_out()
+        ) #Windowインスタンス
+        
+        self.selected_pref:list[str] = []
+        
+        self.window_active:bool = False
+        
+    
+    def _lay_out(self) -> list:
+        
+        L:list = []
+        index = 0
+        for i in range(self.upper_row):
+            add = []
+            for j in range(self.upper_col):
+                if index != 47:
+                    add.append(gui.Checkbox(self.prefecture_list[index], key=self.prefecture_list[index]))
+                    index += 1
+            L.append(add)
+        
+        L.append([gui.Button('OK', key=self.OK_BTN_KEY)])
+        return L
+    
+    def __save_selected_pref(self) -> None:
+        """
+        選択された都道府県を保存する。
+        """
+        for v in self.value.keys():
+            if self.value[v] == True and v not in self.selected_pref:
+                self.selected_pref.append(v)
+    
+    def dispose(self):
+        self.__save_selected_pref()
+        self.window.close()
+        self.window_active = False
+        pass
+        
+        
+
 
 class RuntimeWindow(AbsWindowComponent):
     """_summary_\n
@@ -146,9 +138,10 @@ class StartUpWindow(AbsWindowComponent):
     #TODO:現在暗黙的にコンポーネント内のlayout配列の要素数が2であることを前提としているのでこれを直す。
     
     EXECUTE_BTN_KEY:str = "execute"
+    CUSTOM_WINDOW_TITLE = "抽出条件入力画面"
     
-    def __init__(self) -> None:
-        super(AbsWindowComponent).__init__()
+    def __init__(self, application_name:str) -> None:
+        super().__init__()
         
         self.area_select:AreaSelect = AreaSelect()
         self.big_junle_select:BigJunleSelect = BigJunleSelect()
@@ -156,7 +149,7 @@ class StartUpWindow(AbsWindowComponent):
         
         self.layout = self._lay_out()
         self.window = gui.Window(
-            'エキテン掲載情報 抽出ツール', 
+            application_name + self.CUSTOM_WINDOW_TITLE, 
             layout=self.layout,
             icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
             debugger_enabled=True,
@@ -166,10 +159,8 @@ class StartUpWindow(AbsWindowComponent):
         self.active:bool = True
         self.deactivate:bool = False
         
-        self.value:dict = {}
-        self.event:str = None
         
-    
+    #override
     def _lay_out(self) -> list:
         
         area_layout:list = self.area_select._lay_out()
@@ -198,19 +189,7 @@ class StartUpWindow(AbsWindowComponent):
         
         return L
     
-        
-        
-    def display(self) -> None:
-        """_summary_\n
-        表示中の処理。
-        """
-        #TODO:windowを閉じたときに返されるNoneにより、__event_handlerでkeyErrorがでる。
-        self.event, self.value = self.window.read()
-        
-        if self.event in self.__event_handler:
-            print("HEY")
-            
-        
+    #override
     def dispose(self) -> None:
         self.window.close()
     
