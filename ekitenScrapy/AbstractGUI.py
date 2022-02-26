@@ -23,7 +23,7 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
     def __init__(self, window_name=None)-> None:
         self.event_handler:dict[str, list[callable , tuple]] = {}
         self.event:str = ""
-        self.value:dict[any] = {}
+        self.value:dict[str, str] = {}
         self.window:Window = Window(window_name)
     
     @abstractmethod

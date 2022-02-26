@@ -11,10 +11,10 @@ from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
 
 #GUI関係のインポート
 import PySimpleGUI as gui
-from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
+from StartUpWindow import StartUpWindow, SelectPrefectureWindow
 import sys
 import traceback
-from guiComponent import *
+
 #スレッド関係のインポート
 from multiprocessing import Manager
 import threading as th
@@ -137,11 +137,16 @@ class EkitenInfoExtractionApplication(object):
         
         #状態フラグの初期化
         self.runnung:bool = False
-        self.detati:bool = False
-        self.compleate:bool = False
+        self.detach:bool = False
+        self.complete:bool = False
         
         self.menu_window = StartUpWindow(self.APPLICATION_NAME)
         self.select_pref_window = SelectPrefectureWindow(self.APPLICATION_NAME)
+        
+        self.target_prefecture:list[str] = []
+        
+        self.crawlar:SpiderCall = None
+        self.crawlar_thread:th.Thread = None
         
     def open_area_select_window(self):
         """_summary_\n
@@ -209,7 +214,44 @@ class EkitenInfoExtractionApplication(object):
         """_summary_\n
         クローラーを別スレッドで実行する。
         """
-        pass
+        self.target_prefecture = self.menu_window.value[self.menu_window.area_select.INPUT_KEY].split(',')
+        self.crawlar = SpiderCall(
+            pref_list=self.target_prefecture,
+            save_path=self.menu_window.value[self.menu_window.path_select.INPUT_KEY],
+            junle=self.menu_window.value[self.menu_window.big_junle_select.JUNLE_BTN_KEY]
+        )
+        
+        self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run,args=())
+    
+    def open_runtime_window(self):
+        """_summary_\n
+        実行中のウィンドウを表示する等、アプリケーションの実行中の制御。
+        """
+        while self.running:
+            total:int = self.crawlar.total_counter.value if self.crawlar.total_counter.value != 0 else 99999
+            count:int = self.crawlar.counter.value if self.crawlar.counter.value < total else total - 1
+            
+            #TODO:RuntimeWindowコンポーネントの一部とすること。
+            progress_bar:any|bool = gui.OneLineProgressMeter(
+                "処理中です.", 
+                count, 
+                total, 
+                '<In Progress>', 
+                "現在抽出処理中です。\nこれには数時間かかることがあります。", 
+                orientation='h',
+            )
+            if progress_bar is False and self.running:
+                self.running = False
+                self.detach = True
+                self.complete = True
+                self.crawlar.stop()
+                break
+
+            if self.crawlar_thread.is_alive() is False:
+                self.running = False
+                self.complete = True
+                break
+        
     
     def exeute_handlar(self):
         """_summary_\n
@@ -249,5 +291,5 @@ class EkitenInfoExtractionApplication(object):
 
 #main call
 if __name__ == '__main__':
-    applicatoin = EkitenInfoExtractionApplication()
-    applicatoin.main_menu()
+    application = EkitenInfoExtractionApplication()
+    application.main_menu()
