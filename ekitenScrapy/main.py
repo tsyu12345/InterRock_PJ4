@@ -141,93 +141,63 @@ class EkitenInfoExtractionApplication(object):
         self.compleate:bool = False
         
         self.menu_window = StartUpWindow(self.APPLICATION_NAME)
+        self.select_pref_window = SelectPrefectureWindow(self.APPLICATION_NAME)
         
-        self.target_pref_list:list[str] = []
-        
-    def __process(self, value, event):
-        """[summary]\n
-        スパイダー呼び出し、スパイダー実行中のプログレスバーを表示。
+    def open_area_select_window(self):
+        """_summary_\n
+        都道府県選択のサブウィンドウを表示する。
         """
-        pref_list = value['pref_name'].split(",")
-        print(pref_list)
-        self.running = True
-        """各種デーモンスレッドの設定"""
-        #spiderの設置
-        spider = SpiderCall(pref_list, value['path'], value['Big_junle'])
-        spider_process = th.Thread(target=spider.run, args=(), daemon=True)
-        #ローディングアニメーション用
+        self.select_pref_window = SelectPrefectureWindow(self.APPLICATION_NAME)
         
-        #spider実行
-        spider_process.start()
+        self.select_pref_window.addEventListener(
+            self.select_pref_window.OK_BTN_KEY,
+            self.close_area_select_window
+        )
         
-        while self.running:
-            """
-            e, v = self.window.read(timeout=10, timeout_key='-timeoutEvent-')
-            if e == '-timeoutEvent-' and spider.loading_flg.value:
-                loading_gif:gui.Image = self.loading_Animation['loading']
-                loading_gif.update_animation([self.loading_Animation.animation_gif], time_between_frames=60)
-            else:
-                loading_gif:gui.Image = self.loading_Animation['loading']
-                loading_gif.update(visible=False)
-            """
-            
-            """ProgressDisplay process"""
-            #カウンタ変数の取得
-            total:int = spider.total_counter.value if spider.total_counter.value != 0 else 99999
-            count:int = spider.counter.value if spider.counter.value < total else total - 1
-            #プログレスバーの表示
-            progress = gui.OneLineProgressMeter(
-                "処理中です.", 
-                count, 
-                total, 
-                '<In Progress>', 
-                "現在抽出処理中です。\nこれには数時間かかることがあります。", 
-                orientation='h',
-            )
-            #中断フラグの可否
-            if progress is False and self.running:
-                self.running = False
-                self.detati = True
-                self.compleate = True
-                spider.stop()
-                
-                break
-                
-            
-            if spider_process.is_alive() is False:
-                self.running = False
-                self.compleate = True
-                
-                break
-    
-    def __input_check(self, value):
-        #TODO:各オブジェクトのkey値変更を反映させる。
+        self.select_pref_window.display()
+        
+    def close_area_select_window(self):
+        """_summary_\n
+        都道府県選択のサブウィンドウを閉じ、既定のテキストボックスの表示を更新する。
+        """
+        self.select_pref_window.dispose()
+        textBox_key = self.menu_window.area_select.INPUT_KEY
+        self.menu_window.window[textBox_key].update(self.select_pref_window.get_selected_pref_str())
+        
+    def __input_check(self):
+        """_summary_\n
+        実行ボタン押下時に、入力値のフォーマットが正しいかチェックし、違う場合は警告を出す。\n
+        Returns:\n
+            bool: \n
+            すべての入力値のフォーマットが正しい場合->True\n
+            上記以外->False\n
+        """
         
         checker = [False, False, False]
         
-        if value['pref_name'] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value['pref_name']) == None:
+        if self.menu_window.value[self.menu_window.area_select.INPUT_KEY] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value[self.menu_window.area_select.INPUT_KEY]) == None:
             text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
-            self.window['pref_title'].update(text2, text_color='red')
-            self.window['pref_name'].update(background_color='red')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='red')
+            self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='red')
         else:
             text2 = "都道府県"
-            self.window['pref_title'].update(text2, text_color='purple')
-            self.window['pref_name'].update(background_color='white')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='purple')
+            self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='white')
             checker[0] = True
             
-        if value['Big_junle'] == "":
-            self.window['junle_title'].update("ジャンル選択 ※選択必須です。", text_color='red')
+        if self.menu_window.value[self.menu_window.big_junle_select.JUNLE_BTN_KEY] == "":
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択 ※選択必須です。", text_color='red')
         else:
-            self.window['junle_title'].update("ジャンル選択", text_color='purple')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択", text_color='purple')
             checker[1] = True
             
-        if value['path'] == "":
-            self.window['path_title'].update(
+        if self.menu_window.value[self.menu_window.path_select.INPUT_KEY] == "":
+            self.menu_window.window[self.menu_window.path_select.TITLE_KEY].update(
                 'フォルダ選択 ※保存先が選択されていません。', text_color='red')
-            self.window['path'].update(background_color="red")
+            self.menu_window.window[self.menu_window.path_select.INPUT_KEY].update(background_color="red")
         else:
-            self.window['path_title'].update(text_color='purple')
-            self.window['path'].update(background_color="white")
+            self.menu_window.window[self.menu_window.path_select.TITLE_KEY].update(text_color='purple')
+            self.menu_window.window[self.menu_window.path_select.INPUT_KEY].update(background_color="white")
             checker[2] = True
 
         if False in checker:
@@ -235,66 +205,48 @@ class EkitenInfoExtractionApplication(object):
         else:
             return True
         
-    def __compleate_popup(self, value):
-        #TODO:GUIコンポーネント関係のソースファイルに移項させる。
-        if self.detati:
-            gui.popup("処理を中断しました。", title="処理中断")
-        else:
-            gui.popup("処理が完了しました。\n保存先:" + value['path'], title="処理完了")
-    
-    
-        #TODO:各イベントハンドラーの設定を反映させる。
-        """[summary]\n
-        ウィンドウで発生したイベントごとの処理を呼び出す。\n
+    def __crawl_execute(self):
+        """_summary_\n
+        クローラーを別スレッドで実行する。
         """
-        
-        if event == 'エリア選択':
-            selected_pref_list = self.pref_select_window.display()
-            #windowが閉じると、選択したエリアを集計し返す。
-            for i, area in enumerate(selected_pref_list):
-                v = area + "," if i != len(selected_pref_list) - 1 else area
-                self.window['pref_name'].update(v)
-
-        if event == '抽出実行':
-            checker = self.__input_check(value)
-            if checker is True:
-                self.__process(value, event)
-                self.__compleate_popup(value)
-            
-    def open_pref_select_window(self):
-        select_pref_widow = SelectPrefectureWindow(self.APPLICATION_NAME)
-        select_pref_widow.addEventListener(select_pref_widow.OK_BTN_KEY, select_pref_widow.dispose)
-        select_pref_widow.display()
-        = select_pref_widow.selected_pref
-        
+        pass
+    
+    def exeute_handlar(self):
+        """_summary_\n
+        実行ボタンクリック時のコールバック関数
+        """
+        input_ok:bool = self.__input_check()
+        if input_ok:
+            self.__crawl_execute()
+            self.running = True
+    
+    
     def main_menu(self) -> None:
         """[summary]\n
         メインウィンドウを表示し、全体の流れを制御する。
         """
         self.menu_window.addEventListener(
             self.menu_window.area_select.SELECT_BTN_KEY, 
-            self.open_pref_select_window,
+            self.open_area_select_window
         )
         
-        #TODO:都道府県選択ボタンコンポーネントで、都道府県選択ウィンドウを表示するのをやめる。
-        
-        
+        self.menu_window.addEventListener(
+            self.menu_window.EXECUTE_BTN_KEY,
+            self.exeute_handlar
+        )
         
         while True:
             
             self.menu_window.display()
+            print(self.menu_window.event)
+            print(self.select_pref_window.window)
             
             if self.menu_window.event in ("Quit", None):
                 self.menu_window.dispose()
                 break
             
         sys.exit()
-            
-            
-            
-        
-        
-        
+
 #main call
 if __name__ == '__main__':
     applicatoin = EkitenInfoExtractionApplication()
