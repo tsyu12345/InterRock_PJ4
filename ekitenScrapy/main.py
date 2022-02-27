@@ -13,6 +13,7 @@ from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
 #GUI関係のインポート
 import PySimpleGUI as gui
 from StartUpWindow import StartUpWindow, SelectPrefectureWindow
+from RuntimeWindow import RuntimeWindow
 import sys
 import traceback
 
@@ -28,7 +29,7 @@ from ExcelEdit import ExcelEdit as Edit
 
 #Local function
 
-def list_split(n:int, l:list) -> list[list[str]]:
+def list_split(n:int, l:list[str]) -> list[list[str]]:
     """Summary Line:\n
     リストを指定数に分割し、その2次元リストを返却する。
     Args:\n
@@ -60,13 +61,11 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
     
     FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in ExcelEdit.COLUMN_MENUS.keys()]
     
+    
     def __init__(self, pref_list:list, save_path:str, junle:str):
         
         self.pref_list = pref_list
         self.save_path = save_path
-        
-        #middlewareインスタンスの生成
-        self.middleware = SeleniumMiddlewares(self.pref_list, 4)
         
         #Spider settings
         self.settings = get_project_settings()
@@ -82,7 +81,10 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.total_counter:ValueProxy[int] = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg:ValueProxy[bool] = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg:ValueProxy[bool] = maneger.Value('b', False) #中断のフラグ
+        self.progress_num:ValueProxy[int] = maneger.Value('i', 0) #進捗状況の表示用    
         
+        #middlewareインスタンスの生成
+        self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
         self.crawler = CrawlerProcess(settings=self.settings)
         
         
@@ -94,19 +96,18 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         #検索総数を取得
         self.loading_flg.value = True
-        
+        self.progress_num.value += 1
         count = RequestTotalCount(self.pref_list).get_count()
         print("totalCount: "+str(count))
-        
         self.total_counter.value = count
-        
         result = self.middleware.run()
-        crawl_url_list = list_split(4, result)#4つのクローラーで並列できるように分割
-        
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[0])
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[1])
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[2])
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[3])
+        print("result: "+str(len(result[0])))
+        #result = list_split(4, result)#4つのクローラーで並列できるように分割
+        self.progress_num += 1
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[0])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[1])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[2])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[3])
         
         self.crawler.start()
         
@@ -144,6 +145,7 @@ class EkitenInfoExtractionApplication(object):
         
         self.menu_window = StartUpWindow(self.APPLICATION_NAME)
         self.select_pref_window = SelectPrefectureWindow(self.APPLICATION_NAME)
+        self.runtime_window = RuntimeWindow(self.APPLICATION_NAME)
         
         self.target_prefecture:list[str] = []
         
@@ -223,18 +225,23 @@ class EkitenInfoExtractionApplication(object):
             junle=self.menu_window.value[self.menu_window.big_junle_select.JUNLE_BTN_KEY]
         )
         
-        self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run,args=())
+        self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run,args=(), daemon=True)
         
     def open_runtime_window(self):
         """_summary_\n
         実行中のウィンドウを表示する等、アプリケーションの実行中の制御。
         """
         self.crawlar_thread.start()
+        self.menu_window.dispose()
         while self.running:
             total:int = self.crawlar.total_counter.value if self.crawlar.total_counter.value != 0 else 99999
             count:int = self.crawlar.counter.value if self.crawlar.counter.value < total else total - 1
-            
+            prog_count:int = self.crawlar.progress_num.value
             #TODO:RuntimeWindowコンポーネントの一部とすること。
+            
+            #self.runtime_window.display()
+            #self.runtime_window.update_progress_bar(prog_count)
+            
             progress_bar:any|bool = gui.OneLineProgressMeter(
                 "処理中です.", 
                 count, 
@@ -280,7 +287,6 @@ class EkitenInfoExtractionApplication(object):
         """
         input_ok:bool = self.__input_check()
         if input_ok:
-            self.menu_window.dispose()
             self.__crawl_execute()
             self.running = True
             self.open_runtime_window()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
+from multiprocessing.managers import ValueProxy
 # from scrapy.http import HtmlResponse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -343,9 +344,9 @@ class SmallJunleExtraction(AbsExtraction):
         
         
         for url in url_list:
-            driver.get(url)
             #FIXME:selenium timeout Exception が発生する↓。
             try:
+                driver.get(url)
                 get_href()
             except TimeoutException:
                 print("Timeout")
@@ -365,7 +366,7 @@ class SmallJunleExtraction(AbsExtraction):
         
 class SeleniumMiddlewares():
     
-    def __init__(self, area_list:list, process_count:int) -> None:
+    def __init__(self, area_list:list, process_count:int, progress_num_value:ValueProxy[int]) -> None:
         """[summary]\n
         各実装クラスのインスタンスを生成し、それぞれのインスタンスに対して抽出処理を実行する。\n
         Args:\n
@@ -377,6 +378,7 @@ class SeleniumMiddlewares():
         self.small_junle_ext = SmallJunleExtraction()
         self.area_list = area_list
         self.process_count = process_count
+        self.progress_num = progress_num_value
         self.p = Pool(self.process_count)
     
     
@@ -389,10 +391,11 @@ class SeleniumMiddlewares():
         Returns:\n
             list: その都道府県の小ジャンルごとのURLリスト\n
         """
+        self.progress_num.value += 1
         city_list = self.city_ext.extraction(area)
-
+        self.progress_num.value += 1
         big_junle_list = self.big_junle_ext.extraction(city_list)
-        
+        self.progress_num.value += 1
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
         apply_results = []
         for splitElm in big_junle_split_lists:
@@ -429,13 +432,13 @@ class SeleniumMiddlewares():
         
             
 
-    def run(self):
+    def run(self) -> list[list[str]]:
         result = []
         for area in self.area_list:
             result.append(self.__procedure(area))
         result_2d = convert2d_to_1d(result)
-        result_1d = convert2d_to_1d(result_2d)
-        return result_1d
+        #result_1d = convert2d_to_1d(result_2d)
+        return result_2d
             
 
 if __name__ == '__main__':

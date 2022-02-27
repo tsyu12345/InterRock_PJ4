@@ -68,6 +68,7 @@ class EkitenspiderSpider(scrapy.Spider):
         self.loading_flg = loading_flg #type : bool
         self.end_flg = end_flg #type : bool
         self.small_junle_url_list = small_junle_url_list #type : list[str]
+        print("total crawl url: " + str(len(self.small_junle_url_list)))
         
         print("####init####")
     
