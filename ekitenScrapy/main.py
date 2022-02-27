@@ -103,7 +103,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         result = self.middleware.run()
         print("result: "+str(len(result[0])))
         #result = list_split(4, result)#4つのクローラーで並列できるように分割
-        self.progress_num += 1
+        self.progress_num.value += 1
         self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[0])
         self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[1])
         self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[2])
