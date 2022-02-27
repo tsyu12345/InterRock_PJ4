@@ -1,5 +1,6 @@
 from __future__ import annotations
 from multiprocessing.managers import SyncManager, ValueProxy
+from turtle import title
 
 #Scrapy関係のインポート
 import scrapy.item
@@ -65,12 +66,13 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.save_path = save_path
         
         #middlewareインスタンスの生成
-        #self.middleware = SeleniumMiddlewares(self.pref_list, 4)
+        self.middleware = SeleniumMiddlewares(self.pref_list, 4)
         
         #Spider settings
         self.settings = get_project_settings()
         self.settings.set('FEED_FORMAT', 'xlsx')
-        self.settings.set('FEED_URI', save_path)
+        self.settings.set('FEED_URI', "save_test.xlsx")#TODO:保存先を指定する.
+        
         self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
         self.settings.set('TELNETCONSOLE_ENABLED', False)
         
@@ -98,17 +100,17 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         
         self.total_counter.value = count
         
-        #result = self.middleware.run()
-        #crawl_url_list = list_split(4, result)#4つのクローラーで並列できるように分割
+        result = self.middleware.run()
+        crawl_url_list = list_split(4, result)#4つのクローラーで並列できるように分割
         
-        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
-        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
-        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
-        self.crawler.crawl(EkitenspiderSpider, self.counter, self.loading_flg, self.end_flg, [])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[0])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[1])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[2])
+        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, crawl_url_list[3])
         
         self.crawler.start()
         
-        self.__finalize()
+        #self.__finalize()
 
     def __finalize(self):
         """
@@ -136,7 +138,7 @@ class EkitenInfoExtractionApplication(object):
         
         
         #状態フラグの初期化
-        self.runnung:bool = False
+        self.running:bool = False
         self.detach:bool = False
         self.complete:bool = False
         
@@ -178,7 +180,7 @@ class EkitenInfoExtractionApplication(object):
             上記以外->False\n
         """
         
-        checker = [False, False, False]
+        checker:list[bool] = [False, False, False]
         
         if self.menu_window.value[self.menu_window.area_select.INPUT_KEY] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value[self.menu_window.area_select.INPUT_KEY]) == None:
             text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
@@ -222,11 +224,12 @@ class EkitenInfoExtractionApplication(object):
         )
         
         self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run,args=())
-    
+        
     def open_runtime_window(self):
         """_summary_\n
         実行中のウィンドウを表示する等、アプリケーションの実行中の制御。
         """
+        self.crawlar_thread.start()
         while self.running:
             total:int = self.crawlar.total_counter.value if self.crawlar.total_counter.value != 0 else 99999
             count:int = self.crawlar.counter.value if self.crawlar.counter.value < total else total - 1
@@ -243,7 +246,6 @@ class EkitenInfoExtractionApplication(object):
             if progress_bar is False and self.running:
                 self.running = False
                 self.detach = True
-                self.complete = True
                 self.crawlar.stop()
                 break
 
@@ -252,6 +254,25 @@ class EkitenInfoExtractionApplication(object):
                 self.complete = True
                 break
         
+        if self.complete:
+            gui.popup_ok(
+                "全処理完了しました。保存先を確認してください。\n 保存先:" 
+                + self.menu_window.value[self.menu_window.path_select.INPUT_KEY],
+                title="完了通知",
+                keep_on_top=True
+            )
+            sys.exit()
+            
+        if self.detach:
+            gui.popup_ok(
+                '処理が中断されました',
+                title="中断通知",
+                keep_on_top=True
+            )
+            sys.exit()
+        
+        
+        
     
     def exeute_handlar(self):
         """_summary_\n
@@ -259,8 +280,11 @@ class EkitenInfoExtractionApplication(object):
         """
         input_ok:bool = self.__input_check()
         if input_ok:
+            self.menu_window.dispose()
             self.__crawl_execute()
             self.running = True
+            self.open_runtime_window()
+            
     
     
     def main_menu(self) -> None:
@@ -280,15 +304,12 @@ class EkitenInfoExtractionApplication(object):
         while True:
             
             self.menu_window.display()
-            print(self.menu_window.event)
-            print(self.select_pref_window.window)
-            
+
             if self.menu_window.event in ("Quit", None):
                 self.menu_window.dispose()
-                break
+                sys.exit()
             
-        sys.exit()
-
+        
 #main call
 if __name__ == '__main__':
     application = EkitenInfoExtractionApplication()

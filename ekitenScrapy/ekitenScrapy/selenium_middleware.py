@@ -158,7 +158,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
-        #self.options.add_argument("--headless")
+        self.options.add_argument("--headless")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-infobars")
         self.options.add_argument('--disable-extensions')
@@ -335,6 +335,7 @@ class SmallJunleExtraction(AbsExtraction):
         wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
         
         def get_href() -> None:
+            wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul')))
             a_tags = driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(2) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > a') 
             for a in a_tags:
