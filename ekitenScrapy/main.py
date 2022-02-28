@@ -56,8 +56,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         junle(str): スクレイピングするジャンル\n
     """
     #TODO:itemの定義にしたがって、FIELDSの順番、変数名を変更する
-    #TODO:twisted.internet.error.CannotListenError: Couldn't listen on 127.0.0.1:6073: [WinError 10048]の修正。
-    #↑のエラーが発生するため、Spider実行時エラーが発生している。
+    #TODO:現状のままだと、クローラーを分散させているため、結果が上書きされてしまう。ので、各クローラーごとに別ファイルで一時保存し、それを統合するようにする。
     
     FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in ExcelEdit.COLUMN_MENUS.keys()]
     
@@ -70,7 +69,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         #Spider settings
         self.settings = get_project_settings()
         self.settings.set('FEED_FORMAT', 'xlsx')
-        self.settings.set('FEED_URI', "save_test.xlsx")#TODO:保存先を指定する.
+        self.settings.set('FEED_URI', "save_test.xlsx")
         
         self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
         self.settings.set('TELNETCONSOLE_ENABLED', False)
