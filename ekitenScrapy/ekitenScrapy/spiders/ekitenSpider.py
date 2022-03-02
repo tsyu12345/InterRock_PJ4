@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+from typing import Any
 from multiprocessing.managers import ValueProxy
 from typing import Literal
 
@@ -10,8 +11,10 @@ import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
 from ..middlewares import *
-from ...JisCode import JisCode
-from ...Local import *
+from ..JisCode import JisCode
+import sys
+sys.path.append('../')
+from Local import *
 
 #TODO:エラーハンドリング。
 
@@ -29,7 +32,7 @@ class EkitenspiderSpider(scrapy.Spider):
     RETRY_URL = []
     
     
-    def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], small_junle_url_list:list[str]) -> None:
+    def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], small_junle_url_list:list[str], *args:Any, **kwargs:Any) -> None:
         """
         Summary Lines\n
         初期化処理。selenium_middlewareから受け取ったURLリストに従い、店舗ページをクロールする。\n
@@ -39,6 +42,7 @@ class EkitenspiderSpider(scrapy.Spider):
             end_flg (Manager.Value('b', False)): 中断時のフラグを格納する共有メモリ変数\n
             small_junle_url_list (list): 小ジャンルURLリスト\n
         """ 
+        super().__init__(*args, **kwargs)
         self.counter = counter #type : int
         self.loading_flg = loading_flg #type : bool
         self.end_flg = end_flg #type : bool

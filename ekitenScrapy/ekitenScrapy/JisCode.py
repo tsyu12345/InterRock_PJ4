@@ -1,13 +1,10 @@
-def JisCode(pref_name:str)->int:
-    """[summary]\n
+from __future__ import annotations
 
-    Args:\n
-        pref_name (str): 取得したいコードの都道府県名\n
-
-    Returns:\n
-        int: pref_nameのJISコード\n
+class JisCode:
+    """_summary_\n
+    都道府県名とそのJISコードを定義する。
     """
-    jis_code = {
+    JISCODE_DICT:dict[str, int] = {
         "北海道": 1,
         "青森県": 2,
         "岩手県": 3,
@@ -57,6 +54,34 @@ def JisCode(pref_name:str)->int:
         "沖縄県": 47
     }
     
-    return jis_code[pref_name]
+    def __init__(self) -> None:
+        pass
     
+    def get_jis_code(self, prefecture_name:str) -> int:
+        """_summary_\n
+        都道府県名からJISコードを取得する。\n
+        Args:\n
+            prefecture_name (str): 都道府県名\n
+        Returns:\n
+            int: JISコード\n
+        """
+        jiscode:int = self.JISCODE_DICT[prefecture_name]
+        return jiscode
     
+    def get_prefecture_name(self, jis_code:int) -> str:
+        """_summary_\n
+        JISコードから都道府県名を返す\n
+        Args:\n
+            jis_code (int): JISコード\n
+
+        Returns:\n
+            str: 都道府県名\n
+        """
+        prefecture_name:str = ""
+        for prefecture_name, jis_code_ in self.JISCODE_DICT.items():
+            if jis_code_ == jis_code:
+                prefecture_name = prefecture_name
+                break
+        return prefecture_name
+        
+        

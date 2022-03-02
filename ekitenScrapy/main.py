@@ -1,4 +1,5 @@
 from __future__ import annotations
+from fileinput import filename
 from multiprocessing.managers import SyncManager, ValueProxy
 from turtle import title
 from typing import Any
@@ -23,8 +24,8 @@ from multiprocessing import Manager
 import threading as th
 
 #ワークシート関係
-import ExcelEdit
-from ExcelEdit import ExcelEdit as Edit 
+import WorkBook
+from WorkBook import ExcelEdit as Edit 
 
 #TODO:分散クロールの実装
 
@@ -41,7 +42,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
     #TODO:itemの定義にしたがって、FIELDSの順番、変数名を変更する
     #TODO:現状のままだと、クローラーを分散させているため、結果が上書きされてしまう。ので、各クローラーごとに別ファイルで一時保存し、それを統合するようにする。
     
-    FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in ExcelEdit.COLUMN_MENUS.keys()]
+    FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in WorkBook.COLUMN_MENUS.keys()]
     
     
     def __init__(self, pref_list:list, save_path:str, junle:str):
@@ -52,7 +53,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         #Spider settings
         self.settings = get_project_settings()
         self.settings.set('FEED_FORMAT', 'xlsx')
-        self.settings.set('FEED_URI', "save_test.xlsx")
+        self.settings.set('FEED_URI', "%(filename).xlsx")
         
         self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
         self.settings.set('TELNETCONSOLE_ENABLED', False)
@@ -68,7 +69,19 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         #middlewareインスタンスの生成
         self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
         self.crawler = CrawlerProcess(settings=self.settings)
-        
+    
+    def __set_crawler_setting(self, crawler_url_list:list[list[str]]) -> None:
+        """_summary_\n
+        分散クロール用に追加されるクローラーごとに異なる設定のクローラー設定を用意し、Scrapyに予約する。
+        """
+        for crawler_id, url_list in enumerate(crawler_url_list):
+            self.crawler.crawl(
+                'ekitenSpider', 
+                self.counter, self.loading_flg, 
+                self.end_flg, url_list, 
+                comment=None, 
+                filename='crawler_temp_save_' + str(crawler_id),
+            )
         
     def run(self) -> None:
         """[summary]\n
@@ -86,11 +99,8 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         print("result: "+str(len(result[0])))
         #result = list_split(4, result)#4つのクローラーで並列できるように分割
         self.progress_num.value += 1
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[0])
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[1])
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[2])
-        self.crawler.crawl('ekitenSpider', self.counter, self.loading_flg, self.end_flg, result[3])
-        
+        self.__set_crawler_setting(result)
+    
         self.crawler.start()
         
         #self.__finalize()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from bs4 import BeautifulSoup as Soup
-from JisCode import JisCode
+from ekitenScrapy.JisCode import JisCode
 from Local import *
 import requests
 

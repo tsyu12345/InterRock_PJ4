@@ -9,8 +9,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from multiprocessing import Pool, freeze_support, TimeoutError
 import time
-from ..Local import *
-from ..JisCode import JisCode
+import sys 
+sys.path.append('../')
+from Local import *
+from .JisCode import JisCode
     
 
 
@@ -243,9 +245,6 @@ class SeleniumMiddlewares():
             area_list ([str]): 都道府県のリスト\n
             process_count (int): 並列処理を行うブラウザの個数（推奨:１～４まで）\n
         """
-        self.city_ext = CityUrlExtraction()
-        self.big_junle_ext = BigJunleExtraction()
-        self.small_junle_ext = SmallJunleExtraction()
         self.area_list = area_list
         self.process_count = process_count
         self.progress_num = progress_num_value
@@ -261,16 +260,20 @@ class SeleniumMiddlewares():
         Returns:\n
             list: その都道府県の小ジャンルごとのURLリスト\n
         """
+        city_ext = CityUrlExtraction()
+        big_junle_ext = BigJunleExtraction()
+        small_junle_ext = SmallJunleExtraction()
+        
         self.progress_num.value += 1
-        city_list = self.city_ext.extraction(area)
+        city_list = city_ext.extraction(area)
         self.progress_num.value += 1
-        big_junle_list = self.big_junle_ext.extraction(city_list)
+        big_junle_list = big_junle_ext.extraction(city_list)
         self.progress_num.value += 1
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
         apply_results = []
         for splitElm in big_junle_split_lists:
             oned_list = convert2d_to_1d(splitElm)
-            async_result = self.p.apply_async(self.small_junle_ext.extraction, args=([oned_list]))
+            async_result = self.p.apply_async(small_junle_ext.extraction, args=([oned_list]))
             apply_results.append(async_result)
         result = self.__join_process(apply_results)
         print(result)

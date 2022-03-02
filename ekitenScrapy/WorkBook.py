@@ -55,40 +55,49 @@ COLUMN_MENUS:dict = {
     "introduce" : "紹介文",
 }
 
-class AbsExcelEdit(object, metaclass=ABCMeta):
+class AbsWorkBook(object, metaclass=ABCMeta):
     
     """[summary]\n 
-    指定のExcelファイルを編集する。その抽象クラス。
+    指定のExcelファイルを生成編集する。その抽象クラス。
     """
     
     colm_menu:dict[str, str] = COLUMN_MENUS
     
-    def __init__(self, file_path:str) -> None:
+    def __init__(self, save_file_path:str, crawl_file_path_list:list[str]) -> None:
         
-        self.file_path = file_path
-        
-        self.book = pyxl.load_workbook(self.file_path)
+        self.file_path = save_file_path
+        self.distributed_files_list:list[str] = crawl_file_path_list
+        self.book = pyxl.Workbook()
         self.worksheet = self.book.worksheets[0]
         
     
     @abstractmethod
-    def col_menulocalize(self):
+    def col_menulocalize(self) -> None:
         pass
     
+    @abstractmethod
+    def file_combined(self) -> None:
+        """_summary_\n
+        分散クロールの一時保存ファイルの内容を結合し、1つのExcelファイルとする。
+        """
+        pass
     
     def save(self):
         self.book.save(self.file_path)
         
 
-class ExcelEdit(AbsExcelEdit):
+class WorkBook(AbsWorkBook):
     """[summary]\n
-    指定のExcelファイルを編集する。その実装クラス。\n
-    主目的は指定行のセル値を日本語化。
+    各クローラーの結果を統合し、1つのExcelファイルにする。
     """
     
-    def __init__(self, file_path: str) -> None:
-        super().__init__(file_path)
-        
+    def __init__(self, save_file_path: str, crawled_file_path:list[str]) -> None:
+        super().__init__(save_file_path, crawled_file_path)
+    
+    def  file_combined(self) -> None:
+        #TODO: 分散クロールの一時保存ファイルの内容を結合し、1つのExcelファイルとする。
+        pass
+    
     def col_menulocalize(self):
         """\n
         クロール後のExcelファイルの、
@@ -100,9 +109,6 @@ class ExcelEdit(AbsExcelEdit):
 
 #test call
 if __name__ == '__main__':
-    test = ExcelEdit('test.xlsx')
-    test.col_menulocalize()
-    test.save()
     
 
 
