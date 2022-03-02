@@ -1,23 +1,10 @@
 from __future__ import annotations
 from bs4 import BeautifulSoup as Soup
-from ekitenScrapy.JisCode import JisCode
-from multiprocessing import Pool, Manager, freeze_support
+from JisCode import JisCode
+from Local import *
 import requests
 
-def replaceAll(text:str, dic:list[str], replacing_character:str) -> str:
-    """[summary]\n
-    渡された置換対象文字をすべて１つの文字に置換する。\n
-    Args:\n
-        text (str): 操作する文字列\n
-        dic (list[str, ...]): 置換対象文字のリスト\n
-        replacing_character(str): 置換文字\n
-
-    Returns:\n
-        str: 置換後の文字列\n
-    """
-    for i in dic:
-        text = text.replace(i, replacing_character)
-    return text  
+  
 
 class RequestTotalCount:
     """[summary]\n
@@ -33,7 +20,8 @@ class RequestTotalCount:
         self.pref_list:list[str] = pref_list
         self.request_list:list[str] = []
         for area in self.pref_list:
-            jis_code = JisCode(area)
+            jis = JisCode()
+            jis_code:int = jis.get_jis_code(area)
             url = 'https://www.ekiten.jp/area/a_prefecture' + str(jis_code) + '/'
             self.request_list.append(url)
     

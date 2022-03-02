@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 from multiprocessing.managers import ValueProxy
+from typing import Literal
 
 import scrapy
 from scrapy.exceptions import CloseSpider
@@ -9,39 +10,13 @@ import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
 from ..middlewares import *
-from ..JisCode import JisCode
+from ...JisCode import JisCode
+from ...Local import *
 
 #TODO:エラーハンドリング。
 
 
-def ArrayElementsReplace(array: list, target_str: str, replace_str:str) -> list:
-    """[summary]
-    配列の要素の指定文字列を指定文字列に置換する。
-    Arguments:
-        array {list} -- 配列
-        target_str {str} -- 置換対象文字列
-        replace_str {str} -- 置換文字列
-    
-    Returns:
-        list -- replace_strで置換した配列
-    """
-    for i in range(len(array)):
-        array[i] = array[i].replace(target_str, replace_str)
-    return array
 
-def ArrayStrsToOneStr(array:list):
-    """[summary]
-    配列の要素を一つの文字列にする。
-    Arguments:
-        array {list} -- 配列
-    
-    Returns:
-        str -- 配列の要素を一つの文字列にする。
-    """
-    str = ""
-    for i in range(len(array)):
-        str += array[i] + " "
-    return str
 
 
 class EkitenspiderSpider(scrapy.Spider):
@@ -181,7 +156,9 @@ class EkitenspiderSpider(scrapy.Spider):
         print(item['price_plan'])
         
         address_list = self.__addressSegmentation(response)#住所リスト
-        item['pref_code'] = JisCode(address_list[1])#都道府県コード
+        jis:JisCode = JisCode()
+        item['pref_code'] = jis.get_jis_code(address_list[1])#都道府県コード
+        
         print(item['pref_code'])
         item['pref'] = address_list[1]#都道府県
         print(item['pref'])
@@ -350,7 +327,7 @@ class EkitenspiderSpider(scrapy.Spider):
         item['closest_station'] =  #最寄り駅
         """
     
-    def __extraction_work_time(self, response):
+    def __extraction_work_time(self, response) -> str|None:
         """[summary]\n
         ヘッダー部分の営業時間を抽出する。
         Args:\n
@@ -370,7 +347,7 @@ class EkitenspiderSpider(scrapy.Spider):
                 
                 #print(business_time)
                 return business_time
-               
+            
                 
     def __is_official(self, response) ->str:
         """
@@ -389,7 +366,7 @@ class EkitenspiderSpider(scrapy.Spider):
         else:
             return ""
     
-    def __table_extraction(self, response, menu:str) -> list:
+    def __table_extraction(self, response, menu:str) -> list[str]:
         """
         Summary Lines\n
         指定項目のテーブル要素を抽出する\n
@@ -417,7 +394,7 @@ class EkitenspiderSpider(scrapy.Spider):
         #print(result_list)
         return result_list
     
-    def __addressSegmentation(self, response) -> list:
+    def __addressSegmentation(self, response) -> list[str]:
         """
         Summary Lines
         住所を分割する。
@@ -428,8 +405,7 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         result_list = [None, None, None]
         table_elm = response.css('table.table.p-shop_detail_table.u-mb15 > tbody > tr')
-       
-        print("#####table_elm#####")
+
         for elm in table_elm:
             #print(elm.css('tr').get())
             if '住所' in elm.css('th').extract()[0]: #住所の欄を探す
@@ -440,9 +416,11 @@ class EkitenspiderSpider(scrapy.Spider):
                 get_str = get_str.replace('                ', '')
                 
                 all_address = get_str
-                prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str).group()
+                re_prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
+                prefecture:str = re_prefecture.group()
                 splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
                 municipalities = splited_address[1]
+                
                 result_list[0] = all_address
                 result_list[1] = prefecture
                 result_list[2] = municipalities

@@ -2,148 +2,17 @@ from __future__ import annotations
 
 from abc import ABCMeta, abstractmethod
 from multiprocessing.managers import ValueProxy
-# from scrapy.http import HtmlResponse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
-#from bs4 import BeautifulSoup as Soup
-#from JisCode import JisCode
-from multiprocessing import Pool, Manager, freeze_support, TimeoutError
-#import requests
-#import scrapy
-#import spiders.ekitenSpider as ekitenSpider
-import os
-import sys
+from multiprocessing import Pool, freeze_support, TimeoutError
 import time
-
-#Local finctions here
-def JisCode(pref_name:str)->int:
-    """[summary]\n
-
-    Args:\n
-        pref_name (str): 取得したいコードの都道府県名\n
-
-    Returns:\n
-        int: pref_nameのJISコード\n
-    """
-    jis_code = {
-        "北海道": 1,
-        "青森県": 2,
-        "岩手県": 3,
-        "宮城県": 4,
-        "秋田県": 5,
-        "山形県": 6,
-        "福島県": 7,
-        "茨城県": 8,
-        "栃木県": 9,
-        "群馬県": 10,
-        "埼玉県": 11,
-        "千葉県": 12,
-        "東京都": 13,
-        "神奈川県": 14,
-        "新潟県": 15,
-        "富山県": 16,
-        "石川県": 17,
-        "福井県": 18,
-        "山梨県": 19,
-        "長野県": 20,
-        "岐阜県": 21,
-        "静岡県": 22,
-        "愛知県": 23,
-        "三重県": 24,
-        "滋賀県": 25,
-        "京都府": 26,
-        "大阪府": 27,
-        "兵庫県": 28,
-        "奈良県": 29,
-        "和歌山県": 30,
-        "鳥取県": 31,
-        "島根県": 32,
-        "岡山県": 33,
-        "広島県": 34,
-        "山口県": 35,
-        "徳島県": 36,
-        "香川県": 37,
-        "愛媛県": 38,
-        "高知県": 39,
-        "福岡県": 40,
-        "佐賀県": 41,
-        "長崎県": 42,
-        "熊本県": 43,
-        "大分県": 44,
-        "宮崎県": 45,
-        "鹿児島県": 46,
-        "沖縄県": 47
-    }
-    
-    return jis_code[pref_name]
-    
-    
-def convert2d_to_1d(l:list) -> list:
-    """[summary]
-    2次元のリストを1次元に変換する
-    Args:
-        l (list): 2次元のリスト
-    Returns:
-        list: 1次元のリスト
-    """
-    result = []
-    for i in range(len(l)):
-        for j in range(len(l[i])):
-            result.append(l[i][j])
-    
-    return result
+from ..Local import *
+from ..JisCode import JisCode
     
 
-
-def resource_path(relative_path):
-    """
-    バイナリフィルのパスを提供
-    """
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.dirname(__file__)
-    return os.path.join(base_path, relative_path)
-
-
-def process_join(apply_results: list):
-    """Summary Line:\n
-    Pool.apply_asyncで実行する関数の終了を待機する
-    Args:\n
-        apply_results (list): Pool.apply_asyncで返却されたリスト\n
-    Returns:\n
-        list: Pool.apply_asyncの実行結果、返却値\n
-    """
-    running = [False, False, False, False]
-    return_list = []
-    
-    while True:
-        for i, result in enumerate(apply_results):
-            if result.ready():
-                return_list.append(result.get())
-                running[i] = True
-        if False not in running:
-            break
-    return return_list
-                
-def list_split(n:int, l:list) -> list:
-    """Summary Line:\n
-    リストを指定数に分割し、そのタプルを返却する。
-    Args:\n
-        n (int): 分割数\n
-        l (list): 分割対象のリスト\n
-    Returns:\n
-        list: 分割されたリスト要素を格納したlist\n
-    """
-    result = []
-    for i in range(0, len(l), n):
-        add = l[i:i + n]
-        result.append(add)
-    return result
-        
 
 #TODO: 自作middlewareの実行中に発生したエラーを捕捉してGUIに通知する。
 #TODO:一定時間起動後、403エラーが発生した場合、自動的にwebdriverを再起動する。
@@ -238,7 +107,8 @@ class CityUrlExtraction(AbsExtraction):
         Returns:\n
             list:市区町村レベルのリンクのリスト[url, url,....]\n
         """
-        jis_code = JisCode(pref_name)
+        jis = JisCode()
+        jis_code:int = jis.get_jis_code(pref_name)
         url_list = self.__CityLinkExtraction(jis_code)
         return url_list
     
@@ -456,6 +326,6 @@ if __name__ == '__main__':
     print(newlist)
     """
     #Test call
-    test = SeleniumMiddlewares(['徳島県'], 4)
-    test.run()
+    #test = SeleniumMiddlewares(['徳島県'], 4)
+    #test.run()
     

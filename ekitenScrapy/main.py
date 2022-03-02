@@ -1,6 +1,7 @@
 from __future__ import annotations
 from multiprocessing.managers import SyncManager, ValueProxy
 from turtle import title
+from typing import Any
 
 #Scrapy関係のインポート
 import scrapy.item
@@ -26,24 +27,6 @@ import ExcelEdit
 from ExcelEdit import ExcelEdit as Edit 
 
 #TODO:分散クロールの実装
-
-#Local function
-
-def list_split(n:int, l:list[str]) -> list[list[str]]:
-    """Summary Line:\n
-    リストを指定数に分割し、その2次元リストを返却する。
-    Args:\n
-        n (int): 分割数\n
-        l (list): 分割対象のリスト\n
-    Returns:\n
-        list: 分割されたリスト要素を格納したlist\n
-    """
-    result = []
-    for i in range(0, len(l), n):
-        add = l[i:i + n]
-        result.append(add)
-    return result
-
 
 class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
     """
@@ -148,8 +131,8 @@ class EkitenInfoExtractionApplication(object):
         
         self.target_prefecture:list[str] = []
         
-        self.crawlar:SpiderCall = None
-        self.crawlar_thread:th.Thread = None
+        self.crawlar:SpiderCall = SpiderCall([], "", "") #型をつけるため初期化
+        self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run, daemon=True, args=())
         
     def open_area_select_window(self):
         """_summary_\n
@@ -225,12 +208,13 @@ class EkitenInfoExtractionApplication(object):
         )
         
         self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run,args=(), daemon=True)
+        self.crawlar_thread.start()
         
     def open_runtime_window(self):
         """_summary_\n
         実行中のウィンドウを表示する等、アプリケーションの実行中の制御。
         """
-        self.crawlar_thread.start()
+        self.__crawl_execute()
         self.menu_window.dispose()
         while self.running:
             total:int = self.crawlar.total_counter.value if self.crawlar.total_counter.value != 0 else 99999
@@ -241,7 +225,7 @@ class EkitenInfoExtractionApplication(object):
             #self.runtime_window.display()
             #self.runtime_window.update_progress_bar(prog_count)
             
-            progress_bar:any|bool = gui.OneLineProgressMeter(
+            progress_bar:Any|bool = gui.OneLineProgressMeter(
                 "処理中です.", 
                 count, 
                 total, 
