@@ -1,6 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Any, Final as const
-
+from typing import Iterator, Optional, Any, Final as const
 
 import openpyxl as pyxl
 from abc import ABC, ABCMeta, abstractmethod
@@ -79,7 +78,7 @@ class AbsWorkBook(object, metaclass=ABCMeta):
         pass
     
     @abstractmethod
-    def file_combined(self) -> None:
+    def create_crawl_workbook(self) -> None:
         """_summary_\n
         分散クロールの一時保存ファイルの内容を結合し、1つのExcelファイルとする。
         """
@@ -97,28 +96,34 @@ class WorkBook(AbsWorkBook):
     def __init__(self, save_file_path: str, crawled_file_path:list[str]) -> None:
         super().__init__(save_file_path, crawled_file_path)
     
-    def  file_combined(self) -> None:
+    def create_crawl_workbook(self) -> None:
+        """_summary_\n
+        すべてのクロール結果を統合し、1つのExcelファイルを作成する。
+        """
         #TODO: 分散クロールの一時保存ファイルの内容を結合し、1つのExcelファイルとする。
-        original_books: list[pyxl.Workbook] = []
+        
         for path in self.distributed_files_list:
             book = self.__loadBook(path)
-            original_books.append(book)
+            self.__sheet_combined(book)
+            print("{}番目のファイルを統合しました。".format(self.distributed_files_list.index(path)))
         
-       
-            
-    
-    def copy_cell(self, book:pyxl.Workbook) -> None:
+        
+    def __sheet_combined(self, book:pyxl.Workbook) -> None:
         """_summary_\n 
-        ワークブック内のセル値をコピーする。
+        ワークシートをコピーする。
         """
-        origin_sheet_rows: list[Any] = book.worksheets[0].rows #type: ignore
+        origin_sheet_rows: Iterator[Any] = book.worksheets[0].rows #type: ignore
         write_start_row: int = self.worksheet.max_row + 1 #type: ignore
         for i, row in enumerate(origin_sheet_rows):
-            print(row)
+            if i == 0: #ヘッダー行はコピーしない
+                continue
+            self.__cell_copy(write_start_row + i, row)
             
-            
-            
-        
+    
+    def __cell_copy(self, write_row: int,row_values: Iterator[Any]):
+        for i, value in enumerate(row_values):
+            self.worksheet.cell(row=write_row, column=i + 1, value=value.value)
+            print("{}行目{}列目をコピーしました。".format(write_row + i, i + 1))
             
     def __loadBook(self, filename: str) -> pyxl.Workbook:
         book:pyxl.Workbook = pyxl.load_workbook(filename)
@@ -138,6 +143,11 @@ class WorkBook(AbsWorkBook):
 
 #test call
 if __name__ == '__main__':
-    pass
+    #API TEST CALL
+    combine_list: const[list[str]]
+    combine_list = ["save_test copy 2.xlsx", "save_test copy 3.xlsx", "save_test copy 4.xlsx", "save_test copy.xlsx"]
+    test = WorkBook("save_test-API.xlsx", combine_list)
+    test.create_crawl_workbook()
+    test.save()
 
 
