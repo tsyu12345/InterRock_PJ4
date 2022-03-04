@@ -1,9 +1,11 @@
 from __future__ import annotations
+from typing import Optional, Any, Final as const
+
 
 import openpyxl as pyxl
 from abc import ABC, ABCMeta, abstractmethod
 
-COLUMN_MENUS:dict = {
+COLUMN_MENUS:const[dict] = {
     "store_big_junle" : "ジャンル",
     "store_tel" : "電話",
     "store_name" : "店舗名",
@@ -65,10 +67,11 @@ class AbsWorkBook(object, metaclass=ABCMeta):
     
     def __init__(self, save_file_path:str, crawl_file_path_list:list[str]) -> None:
         
-        self.file_path = save_file_path
-        self.distributed_files_list:list[str] = crawl_file_path_list
+        self.file_path:const[str] = save_file_path #最終的に保存するファイルのパス
+        self.distributed_files_list:const[list[str]] = crawl_file_path_list #分割したファイルのパスリスト
+        
         self.book = pyxl.Workbook()
-        self.worksheet = self.book.worksheets[0]
+        self.worksheet  = self.book.worksheets[0]
         
     
     @abstractmethod
@@ -96,19 +99,45 @@ class WorkBook(AbsWorkBook):
     
     def  file_combined(self) -> None:
         #TODO: 分散クロールの一時保存ファイルの内容を結合し、1つのExcelファイルとする。
-        pass
+        original_books: list[pyxl.Workbook] = []
+        for path in self.distributed_files_list:
+            book = self.__loadBook(path)
+            original_books.append(book)
+        
+       
+            
     
+    def copy_cell(self, book:pyxl.Workbook) -> None:
+        """_summary_\n 
+        ワークブック内のセル値をコピーする。
+        """
+        origin_sheet_rows: list[Any] = book.worksheets[0].rows #type: ignore
+        write_start_row: int = self.worksheet.max_row + 1 #type: ignore
+        for i, row in enumerate(origin_sheet_rows):
+            print(row)
+            
+            
+            
+        
+            
+    def __loadBook(self, filename: str) -> pyxl.Workbook:
+        book:pyxl.Workbook = pyxl.load_workbook(filename)
+        return book
+        
+        
     def col_menulocalize(self):
         """\n
         クロール後のExcelファイルの、
         先頭行の変数で記載された項目を日本語化する。
         """
-        for col in range(1, self.worksheet.max_column + 1):
-            original:str = self.worksheet.cell(row=1, column=col).value
-            self.worksheet.cell(row=1, column=col).value = self.colm_menu[original]
+        max_colum: Optional[int] = self.worksheet.max_column
+        assert max_colum is not None
+        for col in range(1, max_colum + 1):
+            original:Any = self.worksheet.cell(row=1, column=col).value
+            self.worksheet.cell(row=1, column=col).value = self.colm_menu[original] #type: ignore
 
 #test call
 if __name__ == '__main__':
-    
+    pass
 
 
