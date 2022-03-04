@@ -4,7 +4,7 @@ from ekitenScrapy.JisCode import JisCode
 from Local import *
 import requests
 
-  
+
 
 class RequestTotalCount:
     """[summary]\n
