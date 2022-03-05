@@ -170,7 +170,7 @@ class EkitenInfoExtractionApplication(object):
         """
         self.select_pref_window.dispose()
         textBox_key = self.menu_window.area_select.INPUT_KEY
-        self.menu_window.window[textBox_key].update(True, self.select_pref_window.get_selected_pref_str())
+        self.menu_window.window[textBox_key].update(self.select_pref_window.get_selected_pref_str())
         
     def __input_check(self):
         """_summary_\n
@@ -185,23 +185,22 @@ class EkitenInfoExtractionApplication(object):
         
         if self.menu_window.value[self.menu_window.area_select.INPUT_KEY] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value[self.menu_window.area_select.INPUT_KEY]) == None:
             text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
-            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(True, text2, text_color='red')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='red')
             self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='red')
         else:
             text2 = "都道府県"
-            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(True, text2, text_color='purple')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='purple')
             self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='white')
             checker[0] = True
             
         if self.menu_window.value[self.menu_window.big_junle_select.JUNLE_BTN_KEY] == "":
-            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update(True, "ジャンル選択 ※選択必須です。", text_color='red')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択 ※選択必須です。", text_color='red')
         else:
-            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update(True, "ジャンル選択", text_color='purple')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択", text_color='purple')
             checker[1] = True
             
         if self.menu_window.value[self.menu_window.path_select.INPUT_KEY] == "":
             self.menu_window.window[self.menu_window.path_select.TITLE_KEY].update(
-                True,
                 'フォルダ選択 ※保存先が選択されていません。', 
                 text_color='red'
             )
