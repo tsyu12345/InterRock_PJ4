@@ -67,9 +67,9 @@ class AbsWorkBook(object, metaclass=ABCMeta):
     def __init__(self, save_file_path:str, crawl_file_path_list:list[str]) -> None:
         
         self.file_path:const[str] = save_file_path #最終的に保存するファイルのパス
-        self.distributed_files_list:const[list[str]] = crawl_file_path_list #分割したファイルのパスリスト
-        
-        self.book = pyxl.Workbook()
+        self.distributed_files_list:const[list[str]] = crawl_file_path_list[1:len(crawl_file_path_list)] #分割したファイルのパスリスト
+        print(self.distributed_files_list)
+        self.book = pyxl.load_workbook(crawl_file_path_list[0]) #分割したファイルの最初のファイルを読み込む
         self.worksheet  = self.book.worksheets[0]
         
     
