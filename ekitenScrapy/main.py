@@ -1,15 +1,12 @@
 from __future__ import annotations
+from typing import Any, Optional, Iterator, Final as const
 from fileinput import filename
 from multiprocessing.managers import SyncManager, ValueProxy
-from turtle import title
-from typing import Any
 
 #Scrapy関係のインポート
-import scrapy.item
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
 from RequestTotalCount import RequestTotalCount
-from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
 
 #GUI関係のインポート
@@ -24,8 +21,7 @@ from multiprocessing import Manager
 import threading as th
 
 #ワークシート関係
-import WorkBook
-from WorkBook import ExcelEdit as Edit 
+from WorkBook import WorkBook, COLUMN_MENUS
 
 #TODO:分散クロールの実装
 
@@ -42,25 +38,29 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
     #TODO:itemの定義にしたがって、FIELDSの順番、変数名を変更する
     #TODO:現状のままだと、クローラーを分散させているため、結果が上書きされてしまう。ので、各クローラーごとに別ファイルで一時保存し、それを統合するようにする。
     
-    FEED_EXPORT_FIELDS:list[str] = [item_key for item_key in WorkBook.COLUMN_MENUS.keys()]
+    FEED_EXPORT_FIELDS:const[list[str]] = [item_key for item_key in COLUMN_MENUS.keys()]
     
     
     def __init__(self, pref_list:list, save_path:str, junle:str):
-        
+        """_summary_\n
+        Args:\n
+            pref_list(list[str]): 都道府県のリスト\n
+            save_path(str): スクレイピング結果の保存先\n
+            junle(str): スクレイピングするジャンル -> まだ未実装。\n
+        """
         self.pref_list = pref_list
-        self.save_path = save_path
+        self.save_path = save_path #最終的な保存先
         
         #Spider settings
         self.settings = get_project_settings()
         self.settings.set('FEED_FORMAT', 'xlsx')
         self.settings.set('FEED_URI', "%(filename).xlsx")
-        
         self.settings.set('FEED_EXPORT_FIELDS', self.FEED_EXPORT_FIELDS)
         self.settings.set('TELNETCONSOLE_ENABLED', False)
         
         #各フラグ、カウンタ変数の定義
         maneger:SyncManager = Manager()
-        self.counter:ValueProxy[int] = maneger.Value('i', 0) #現在の進捗状況のカウンター
+        self.counter:ValueProxy[int] = maneger.Value('i', 0) #現在のクロール済みカウンター
         self.total_counter:ValueProxy[int] = maneger.Value('i', 1) #スクレイピングするサイトの総数
         self.loading_flg:ValueProxy[bool] = maneger.Value('b', False) #ローディング中かどうかのフラグ
         self.end_flg:ValueProxy[bool] = maneger.Value('b', False) #中断のフラグ
@@ -69,18 +69,23 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         #middlewareインスタンスの生成
         self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
         self.crawler = CrawlerProcess(settings=self.settings)
+        
+        #分散クロール結果の一時保存先を格納したリスト
+        self.crawler_temp_save_list:list[str] = []
     
     def __set_crawler_setting(self, crawler_url_list:list[list[str]]) -> None:
         """_summary_\n
         分散クロール用に追加されるクローラーごとに異なる設定のクローラー設定を用意し、Scrapyに予約する。
         """
         for crawler_id, url_list in enumerate(crawler_url_list):
+            filename: str = 'crawler_temp_save_' + str(crawler_id)
+            self.crawler_temp_save_list.append(filename)
             self.crawler.crawl(
                 'ekitenSpider', 
                 self.counter, self.loading_flg, 
                 self.end_flg, url_list, 
                 comment=None, 
-                filename='crawler_temp_save_' + str(crawler_id),
+                filename=filename,
             )
         
     def run(self) -> None:
@@ -100,21 +105,23 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         #result = list_split(4, result)#4つのクローラーで並列できるように分割
         self.progress_num.value += 1
         self.__set_crawler_setting(result)
-    
         self.crawler.start()
-        
-        #self.__finalize()
-
-    def __finalize(self):
-        """
-        クロール終了後のワークシートの仕上げ処理。各項目の整形
-        """
-        editor = Edit(self.save_path)
-        editor.col_menulocalize()
-        editor.save()
+        print("crawler exit")
+        self.progress_num.value += 1
+        self.__save_crawl_result(self.crawler_temp_save_list)
         
     def stop(self):
         self.end_flg.value = True
+        
+        
+    def __save_crawl_result(self, crawl_path_list:list[str]):
+        """_summary_\n 
+        クロール結果を保存する。
+        """
+        workbook = WorkBook(self.save_path, crawl_path_list)
+        workbook.create_crawl_workbook()
+        workbook.col_menulocalize()
+        workbook.save()
         
 class EkitenInfoExtractionApplication(object):
     """
@@ -163,7 +170,7 @@ class EkitenInfoExtractionApplication(object):
         """
         self.select_pref_window.dispose()
         textBox_key = self.menu_window.area_select.INPUT_KEY
-        self.menu_window.window[textBox_key].update(self.select_pref_window.get_selected_pref_str())
+        self.menu_window.window[textBox_key].update(True, self.select_pref_window.get_selected_pref_str())
         
     def __input_check(self):
         """_summary_\n
@@ -178,23 +185,26 @@ class EkitenInfoExtractionApplication(object):
         
         if self.menu_window.value[self.menu_window.area_select.INPUT_KEY] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value[self.menu_window.area_select.INPUT_KEY]) == None:
             text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
-            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='red')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(True, text2, text_color='red')
             self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='red')
         else:
             text2 = "都道府県"
-            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='purple')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(True, text2, text_color='purple')
             self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='white')
             checker[0] = True
             
         if self.menu_window.value[self.menu_window.big_junle_select.JUNLE_BTN_KEY] == "":
-            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択 ※選択必須です。", text_color='red')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update(True, "ジャンル選択 ※選択必須です。", text_color='red')
         else:
-            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択", text_color='purple')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update(True, "ジャンル選択", text_color='purple')
             checker[1] = True
             
         if self.menu_window.value[self.menu_window.path_select.INPUT_KEY] == "":
             self.menu_window.window[self.menu_window.path_select.TITLE_KEY].update(
-                'フォルダ選択 ※保存先が選択されていません。', text_color='red')
+                True,
+                'フォルダ選択 ※保存先が選択されていません。', 
+                text_color='red'
+            )
             self.menu_window.window[self.menu_window.path_select.INPUT_KEY].update(background_color="red")
         else:
             self.menu_window.window[self.menu_window.path_select.TITLE_KEY].update(text_color='purple')
@@ -220,12 +230,15 @@ class EkitenInfoExtractionApplication(object):
         self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run,args=(), daemon=True)
         self.crawlar_thread.start()
         
+
+        
     def open_runtime_window(self):
         """_summary_\n
         実行中のウィンドウを表示する等、アプリケーションの実行中の制御。
         """
         self.__crawl_execute()
         self.menu_window.dispose()
+        
         while self.running:
             total:int = self.crawlar.total_counter.value if self.crawlar.total_counter.value != 0 else 99999
             count:int = self.crawlar.counter.value if self.crawlar.counter.value < total else total - 1
@@ -243,6 +256,7 @@ class EkitenInfoExtractionApplication(object):
                 "現在抽出処理中です。\nこれには数時間かかることがあります。", 
                 orientation='h',
             )
+            
             if progress_bar is False and self.running:
                 self.running = False
                 self.detach = True

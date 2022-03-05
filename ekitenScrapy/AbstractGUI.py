@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any, Iterator, Optional, Final as const
 from abc import ABCMeta, abstractmethod
 from PySimpleGUI.PySimpleGUI import Window
 
@@ -35,7 +36,7 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
         """
         pass
     
-    def addEventListener(self, key:str, callback:callable, *args) -> any:
+    def addEventListener(self, key:str, callback:callable, *args) -> None:
         """_summary_\n
         イベントリスナーを設定する。\n
         Args:\n
