@@ -3,6 +3,7 @@ from typing import Iterator, Optional, Any, Final as const
 
 import openpyxl as pyxl
 from abc import ABC, ABCMeta, abstractmethod
+import os
 
 COLUMN_MENUS:const[dict] = {
     "store_big_junle" : "ジャンル",
@@ -63,13 +64,17 @@ class AbsWorkBook(object, metaclass=ABCMeta):
     """
     
     colm_menu:dict[str, str] = COLUMN_MENUS
+
     
     def __init__(self, save_file_path:str, crawl_file_path_list:list[str]) -> None:
         
         self.file_path:const[str] = save_file_path #最終的に保存するファイルのパス
         self.distributed_files_list:const[list[str]] = crawl_file_path_list[1:len(crawl_file_path_list)] #分割したファイルのパスリスト
         print(self.distributed_files_list)
-        self.book = pyxl.load_workbook(crawl_file_path_list[0]) #分割したファイルの最初のファイルを読み込む
+        try:
+            self.book = pyxl.load_workbook(crawl_file_path_list[0]) #分割したファイルの最初のファイルを読み込む
+        except FileNotFoundError:
+            raise FileNotFoundError("一時保存ファイルが見つからないため、xlsxファイルを作成できませんでした。")
         self.worksheet  = self.book.worksheets[0]
         
     
@@ -83,6 +88,14 @@ class AbsWorkBook(object, metaclass=ABCMeta):
         分散クロールの一時保存ファイルの内容を結合し、1つのExcelファイルとする。
         """
         pass
+    
+    @abstractmethod
+    def remove_temp_file(self) -> None:
+        """_summary_\n
+        一時保存ファイルを削除する。
+        """
+        pass
+        
     
     def save(self):
         self.book.save(self.file_path)
@@ -117,18 +130,27 @@ class WorkBook(AbsWorkBook):
         for i, row in enumerate(origin_sheet_rows):
             if i == 0: #ヘッダー行はコピーしない
                 continue
-            self.__cell_copy(write_start_row + i, row)
-            
+            self.__cell_copy(write_start_row + i-1, row)
+    
     
     def __cell_copy(self, write_row: int,row_values: Iterator[Any]):
         for i, value in enumerate(row_values):
             self.worksheet.cell(row=write_row, column=i + 1, value=value.value)
             print("{}行目{}列目をコピーしました。".format(write_row + i, i + 1))
             
+    
     def __loadBook(self, filename: str) -> pyxl.Workbook:
         book:pyxl.Workbook = pyxl.load_workbook(filename)
         return book
         
+    
+    def remove_temp_file(self) -> None:
+        """_summary_\n 
+        一時保存ファイルを削除する。\n
+        caution: 分散クロールの一時保存ファイルを削除するため、save()を実行してから実行すること。
+        """
+        for path in self.distributed_files_list:
+            os.remove(path)
         
     def col_menulocalize(self):
         """\n
