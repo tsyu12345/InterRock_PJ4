@@ -1,4 +1,4 @@
-    def __stop_spider(self):
+def __stop_spider(self):
         """
         [summary]\n 
         中断フラグがTrueになるか別スレッドで監視する。
@@ -6,7 +6,7 @@
         """
         while True:
             if self.end_flg.value == True:
-                self.middleware.stop()
+                #self.middleware.stop()
                 raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
 
 
