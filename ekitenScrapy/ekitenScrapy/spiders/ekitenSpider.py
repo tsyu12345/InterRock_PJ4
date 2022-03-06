@@ -398,7 +398,7 @@ class EkitenspiderSpider(scrapy.Spider):
         #print(result_list)
         return result_list
     
-    def __addressSegmentation(self, response) -> list[str]:
+    def __addressSegmentation(self, response) -> list[str | None]:
         """
         Summary Lines
         住所を分割する。
@@ -407,7 +407,7 @@ class EkitenspiderSpider(scrapy.Spider):
         Returns:
             分割後の住所を格納したリスト[allAddress, prefecture, municipalities]
         """
-        result_list = [None, None, None]
+        result_list:list[str | None] = [None, None, None]
         table_elm = response.css('table.table.p-shop_detail_table.u-mb15 > tbody > tr')
 
         for elm in table_elm:
@@ -421,13 +421,13 @@ class EkitenspiderSpider(scrapy.Spider):
                 
                 all_address = get_str
                 re_prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
-                prefecture:str = re_prefecture.group()
+                prefecture:str = re_prefecture.group() #type: ignore
                 splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
                 municipalities = splited_address[1]
                 
-                result_list[0] = all_address
-                result_list[1] = prefecture
-                result_list[2] = municipalities
+                result_list[0] = all_address #type: ignore
+                result_list[1] = prefecture #type: ignore
+                result_list[2] = municipalities #type: ignore
         
         return result_list
         

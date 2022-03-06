@@ -79,7 +79,6 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         for crawler_id, url_list in enumerate(crawler_url_list):
             filename: str = 'crawler_temp_save_' + str(crawler_id)
-            self.crawler_temp_save_list.append(filename)
             self.crawler.crawl(
                 'ekitenSpider', 
                 self.counter, self.loading_flg, 
@@ -87,6 +86,8 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
                 comment=None, 
                 filename=filename,
             )
+            filename = filename +'.xlsx' #拡張子をつけてからリストへ格納。
+            self.crawler_temp_save_list.append(filename)
         
     def run(self) -> None:
         """[summary]\n
@@ -170,7 +171,7 @@ class EkitenInfoExtractionApplication(object):
         """
         self.select_pref_window.dispose()
         textBox_key = self.menu_window.area_select.INPUT_KEY
-        self.menu_window.window[textBox_key].update(self.select_pref_window.get_selected_pref_str())
+        self.menu_window.window[textBox_key].update(self.select_pref_window.get_selected_pref_str()) #type: ignore
         
     def __input_check(self):
         """_summary_\n
@@ -185,23 +186,23 @@ class EkitenInfoExtractionApplication(object):
         
         if self.menu_window.value[self.menu_window.area_select.INPUT_KEY] == "" :#or re.fullmatch('東京都|北海道|(?:京都|大阪)府|.{2,3}県', self.value[self.menu_window.area_select.INPUT_KEY]) == None:
             text2 = "都道府県 ※入力値が不正です。例）東京都, 北海道, 大阪府"
-            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='red')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='red')#type: ignore
             self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='red')
         else:
             text2 = "都道府県"
-            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='purple')
+            self.menu_window.window[self.menu_window.area_select.TITLE_KEY].update(text2, text_color='purple')#type: ignore
             self.menu_window.window[self.menu_window.area_select.INPUT_KEY].update(background_color='white')
             checker[0] = True
             
         if self.menu_window.value[self.menu_window.big_junle_select.JUNLE_BTN_KEY] == "":
-            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択 ※選択必須です。", text_color='red')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択 ※選択必須です。", text_color='red')#type: ignore
         else:
-            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択", text_color='purple')
+            self.menu_window.window[self.menu_window.big_junle_select.TITLE_KEY].update("ジャンル選択", text_color='purple')#type: ignore
             checker[1] = True
             
         if self.menu_window.value[self.menu_window.path_select.INPUT_KEY] == "":
             self.menu_window.window[self.menu_window.path_select.TITLE_KEY].update(
-                'フォルダ選択 ※保存先が選択されていません。', 
+                'フォルダ選択 ※保存先が選択されていません。', #type: ignore
                 text_color='red'
             )
             self.menu_window.window[self.menu_window.path_select.INPUT_KEY].update(background_color="red")
