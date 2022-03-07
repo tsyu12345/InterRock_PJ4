@@ -68,7 +68,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.progress_num:ValueProxy[int] = maneger.Value('i', 0) #進捗状況の表示用    
         
         #middlewareインスタンスの生成
-        #self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
+        self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
         self.crawler = CrawlerProcess(self.settings)
         
         #分散クロール結果の一時保存先を格納したリスト
@@ -91,7 +91,7 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
             filename = filename +'.xlsx' #拡張子をつけてからリストへ格納。
             self.crawler_temp_save_list.append(filename)
         
-        self.crawler.start()  #FIXME:ReactorAlreadyRunningの発生。crawler.start()でブロックされていないのか、Spider実行中にもかかわらずWorkBook()を開いてしまう。
+        self.crawler.start() 
         
     def run(self) -> None:
         """[summary]\n
@@ -105,19 +105,20 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
         count = RequestTotalCount(self.pref_list).get_count()
         print("totalCount: "+str(count))
         self.total_counter.value = count
-        #result = self.middleware.run()
+        result = self.middleware.run()
         #print("result: "+str(len(result[0])))
         #result = list_split(4, result)#4つのクローラーで並列できるように分割
         self.progress_num.value += 1
         
         #試験用
+        """
         result = [
             ['https://www.ekiten.jp/shop_88106804/', 'https://www.ekiten.jp/shop_89135856/', 'https://www.ekiten.jp/shop_42622487/'],
             ['https://www.ekiten.jp/shop_2869541/', 'https://www.ekiten.jp/shop_2933537/', 'https://www.ekiten.jp/shop_2883346/'],
             ['https://www.ekiten.jp/shop_11915211/', 'https://www.ekiten.jp/shop_7145303/', 'https://www.ekiten.jp/shop_6634217/'],
             ['https://www.ekiten.jp/shop_23136354/', 'https://www.ekiten.jp/shop_6634217/', 'https://www.ekiten.jp/shop_28456450/'],
         ]
-
+        """
         self.__start_crawler(result)
         print("crawler exit")
         self.progress_num.value += 1
