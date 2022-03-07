@@ -90,10 +90,8 @@ class SpiderCall: #TODO:中止処理の追加, CrawlerProcessの並列実行
             self.settings.set('FEED_URI', '%(filename)s' + self.FILE_EXTENSION)
             filename = filename +'.xlsx' #拡張子をつけてからリストへ格納。
             self.crawler_temp_save_list.append(filename)
-        try:
-            self.crawler.start()  #FIXME:crawler.start()でブロックされていないのか、Spider実行中にもかかわらずWorkBook()を開いてしまう。
-        except:
-            pass
+        
+        self.crawler.start()  #FIXME:ReactorAlreadyRunningの発生。crawler.start()でブロックされていないのか、Spider実行中にもかかわらずWorkBook()を開いてしまう。
         
     def run(self) -> None:
         """[summary]\n
@@ -164,8 +162,8 @@ class EkitenInfoExtractionApplication(object):
         
         self.target_prefecture:list[str] = []
         
-        self.crawlar:SpiderCall = SpiderCall([], "", "") #型をつけるため初期化
-        self.crawlar_thread:th.Thread = th.Thread(target=self.crawlar.run, daemon=True, args=())
+        self.crawlar: SpiderCall 
+        self.crawlar_thread: th.Thread
         
     def open_area_select_window(self):
         """_summary_\n
