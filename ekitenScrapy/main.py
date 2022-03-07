@@ -251,7 +251,6 @@ class EkitenInfoExtractionApplication(object):
         """_summary_\n
         実行中のウィンドウを表示する等、アプリケーションの実行中の制御。
         """
-        self.__crawl_execute()
         self.menu_window.dispose()
         
         while self.running:
