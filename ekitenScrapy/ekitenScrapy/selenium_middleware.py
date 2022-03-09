@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from multiprocessing import Pool, freeze_support, TimeoutError
+
 import time
 import sys 
 sys.path.append('../')
@@ -24,6 +25,9 @@ class AbsExtraction(object, metaclass=ABCMeta):
     遷移先のページリンクを取得するときに、JavaScriptで動的に生成される場合に利用する。\n
     継承先の各子クラスで、レベル別（市区町村、大ジャンル、小ジャンル）に実際の抽出処理を実装する。\n
     """
+    
+    RETRY_UPPER_LIMIT:int = 3
+    RESTART_WAIT_TIME:int = 300 #ミリ秒
     
     def __init__(self):
         self.driver_path = '../chromedriver.exe'
@@ -60,12 +64,18 @@ class AbsExtraction(object, metaclass=ABCMeta):
         """
         pass
 
-
+class BrowserRetryError(Exception):
+    """Summary Line.\n
+    再試行が失敗したときに出す例外\n
+    """
+    pass
         
 class CityUrlExtraction(AbsExtraction):
+    
     def __init__(self):
         super(CityUrlExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+    
         
     def __CityLinkExtraction(self, pref_code:int) -> list[str]:
         """Summary Line.\n
@@ -86,16 +96,21 @@ class CityUrlExtraction(AbsExtraction):
             print(link_tags)
             for tag in link_tags:
                 urls.append(tag.get_attribute('href'))
-        #FIXME:selenium timeout Exception が発生する↓。
-        try:
-            get_href()
-        except TimeoutException:
-            print("タイムアウト")
-            time.sleep(300)
-            self.restart_driver()
-            get_href()
         
-        
+        #FIXME:selenium timeout Exception が発生する↓。 <-403 サーバーブロックが原因
+        for retry_counter in range(self.RETRY_UPPER_LIMIT):
+            try:
+                get_href()
+            except TimeoutException:
+                print("city link extraction timeout.")
+                print("after 5 min, this process will be retried automatically.")
+                self.restart_driver()
+                time.sleep(self.RESTART_WAIT_TIME)
+            else:
+                break
+        else:
+            raise BrowserRetryError("市区町村レベルのリンク抽出に失敗しました。")
+            
         self.driver.quit()
         return urls
         
@@ -120,6 +135,9 @@ class CityUrlExtraction(AbsExtraction):
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
     
 class BigJunleExtraction(AbsExtraction):
+    
+    
+    
     def __init__(self):
         super(BigJunleExtraction, self).__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
@@ -155,20 +173,24 @@ class BigJunleExtraction(AbsExtraction):
             add_links = [] 
             for a in a_tags:
                 add_links.append(a.get_attribute('href'))
-            url_list.append(add_links)    
+            url_list.append(add_links)
+                
         #FIXME:selenium timeout Exception が発生する↓。
         for url in city_list:
-            try:
-                get_href(url)
-            except TimeoutException:
-                print("タイムアウト")
-                time.sleep(300)
-                self.restart_driver()
-                get_href(url)
-        
-        
-        self.driver.quit()
             
+            for retry_counter in range(self.RETRY_UPPER_LIMIT):
+                try:
+                    get_href(url)
+                except TimeoutException:
+                    print("タイムアウト")
+                    time.sleep(300)
+                    self.restart_driver()
+                else:
+                    break
+            else:
+                raise BrowserRetryError("大ジャンルリンク抽出に失敗しました。")
+                
+        self.driver.quit()
         return url_list
     
     def restart_driver(self) -> None:
@@ -205,7 +227,6 @@ class SmallJunleExtraction(AbsExtraction):
         """
         result_list = []
         driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
-        wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
         
         def get_href() -> None:
             wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
@@ -214,27 +235,33 @@ class SmallJunleExtraction(AbsExtraction):
             for a in a_tags:
                 result_list.append(a.get_attribute('href'))
         
+        def restart_driver(exist_driver:webdriver.Chrome) -> webdriver.Chrome:
+            exist_driver.delete_all_cookies()
+            exist_driver.quit()
+            time.sleep(self.RESTART_WAIT_TIME)
+            new_driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+            return new_driver
         
         for url in url_list:
             #FIXME:selenium timeout Exception が発生する↓。
-            try:
-                driver.get(url)
-                get_href()
-            except TimeoutException:
-                print("Timeout")
-                driver.delete_all_cookies()
-                driver.quit()
-                time.sleep(300)#5分待機
-                driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)                
-                driver.get(url)
-                get_href()
+            for retry_counter in range(self.RETRY_UPPER_LIMIT):
+                try:
+                    driver.get(url)
+                    get_href()
+                except TimeoutException:
+                    print("small junle extraction timeout.")
+                    print("after 5 min, this process will be retried automatically.")
+                    driver = restart_driver(driver)                
+                else: #try-exceptのelse部分
+                    break
+            else: #for文のelse部分
+                raise BrowserRetryError("小ジャンルリンクの抽出に失敗しました。")
                 
         driver.quit()
-        print(result_list)
         return result_list
 
     def restart_driver(self) -> None:
-        self.driver.quit()
+        pass
         
 class SeleniumMiddlewares():
     
