@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from email.generator import Generator
 from typing import Any
 from multiprocessing.managers import ValueProxy
 from typing import Literal
@@ -20,9 +19,6 @@ sys.path.append('../')
 from Local import *
 
 #TODO:エラーハンドリング。
-
-
-
 
 
 class EkitenspiderSpider(scrapy.Spider):
@@ -49,9 +45,10 @@ class EkitenspiderSpider(scrapy.Spider):
         self.loading_flg = loading_flg 
         self.end_flg = end_flg 
         self.small_junle_url_list = small_junle_url_list 
-        dispatcher.connect(self.spider_closed, signals.spider_closed) #type: ignore 
+        #dispatcher.connect(self.spider_closed, signals.spider_closed) #type: ignore 
         print("total crawl url: " + str(len(self.small_junle_url_list)))
         print("####init####")
+        
     
     def __stop_spider(self):
         """
@@ -129,6 +126,7 @@ class EkitenspiderSpider(scrapy.Spider):
             print(next_page_url)
             yield scrapy.Request(next_page_url, callback=self.request_store_page, errback=self.error_process)
 
+    
             
     def parse(self, response):
         #TODO:未抽出項目の追加、修正。

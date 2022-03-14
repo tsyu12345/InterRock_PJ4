@@ -70,6 +70,7 @@ class AbsWorkBook(object, metaclass=ABCMeta):
         
         self.file_path:const[str] = save_file_path #最終的に保存するファイルのパス
         self.distributed_files_list:const[list[str]] = crawl_file_path_list[1:len(crawl_file_path_list)] #分割したファイルのパスリスト
+        self.all_file_list: list[str] = crawl_file_path_list #全てのファイルのパスリスト
         print(self.distributed_files_list)
         try:
             self.book = pyxl.load_workbook(crawl_file_path_list[0]) #分割したファイルの最初のファイルを読み込む
@@ -130,14 +131,13 @@ class WorkBook(AbsWorkBook):
         for i, row in enumerate(origin_sheet_rows):
             if i == 0: #ヘッダー行はコピーしない
                 continue
-            self.__cell_copy(write_start_row + i-1, row)
+            self.__cell_copy(write_start_row, row)
+            write_start_row += 1
     
     
     def __cell_copy(self, write_row: int,row_values: Iterator[Any]):
         for i, value in enumerate(row_values):
             self.worksheet.cell(row=write_row, column=i + 1, value=value.value)
-            print("{}行目{}列目をコピーしました。".format(write_row + i, i + 1))
-            
     
     def __loadBook(self, filename: str) -> pyxl.Workbook:
         book:pyxl.Workbook = pyxl.load_workbook(filename)
@@ -149,7 +149,7 @@ class WorkBook(AbsWorkBook):
         一時保存ファイルを削除する。\n
         caution: 分散クロールの一時保存ファイルを削除するため、save()を実行してから実行すること。
         """
-        for path in self.distributed_files_list:
+        for path in self.all_file_list:
             os.remove(path)
         
     def col_menulocalize(self):
