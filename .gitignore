@@ -1,7 +1,6 @@
 __pycache__
 *.xlsx
 run_test.xlsx
-
 chromedriver.exe
 chrome-win
 *.csv
@@ -12,3 +11,10 @@ venv
 run_test.xlsx
 build
 dist
+ekitenScrapy/dist
+ekitenScrapy/build
+ekitenScrapy/.scrapy
+ekitenScrapy/temp
+ekitenScrapy/__pycache__
+ekitenScrapy/main.build
+ekitenScrapy/main.dist
