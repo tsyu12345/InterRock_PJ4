@@ -13,6 +13,7 @@ import traceback
 from SpiderAPI import SpiderCall
 
 #スレッド関係のインポート
+from multiprocessing import freeze_support
 import threading as th
 
 class EkitenInfoExtractionApplication(object):
@@ -216,5 +217,6 @@ class EkitenInfoExtractionApplication(object):
         
 #main call
 if __name__ == '__main__':
+    freeze_support()
     application = EkitenInfoExtractionApplication()
     application.main_menu()
