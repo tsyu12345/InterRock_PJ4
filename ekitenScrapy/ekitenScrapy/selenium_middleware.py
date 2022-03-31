@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any, Final as const
 
 from abc import ABCMeta, abstractmethod
 from multiprocessing.managers import ValueProxy
@@ -7,7 +8,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
+import chromedriver_binary 
 from multiprocessing import Pool, freeze_support, TimeoutError
+from multiprocessing.pool import ApplyResult
 
 import time
 import sys 
@@ -30,7 +33,8 @@ class AbsExtraction(object, metaclass=ABCMeta):
     RESTART_WAIT_TIME:int = 300 #ミリ秒
     
     def __init__(self):
-        self.driver_path = '../chromedriver.exe'
+        driver_absolute_path:str = chromedriver_binary.chromedriver_filename
+        self.driver_path = driver_absolute_path
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
@@ -45,7 +49,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options.add_argument('--ignore-ssl-errors')
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
-        browser_path = '../chrome-win/chrome.exe'
+        browser_path = resource_path('../../chrome-win/chrome.exe')
         self.options.binary_location = browser_path
         
     @abstractmethod
@@ -73,8 +77,8 @@ class BrowserRetryError(Exception):
 class CityUrlExtraction(AbsExtraction):
     
     def __init__(self):
-        super(CityUrlExtraction, self).__init__()
-        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        super().__init__()
+        self.driver = webdriver.Chrome(options=self.options)
     
         
     def __CityLinkExtraction(self, pref_code:int) -> list[str]:
@@ -132,15 +136,15 @@ class CityUrlExtraction(AbsExtraction):
     def restart_driver(self) -> None:
         
         self.driver.quit()
-        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        self.driver = webdriver.Chrome(options=self.options)
     
 class BigJunleExtraction(AbsExtraction):
     
     
     
     def __init__(self):
-        super(BigJunleExtraction, self).__init__()
-        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        super().__init__()
+        self.driver = webdriver.Chrome(options=self.options)
 
     def extraction(self, city_url_list:list) -> list:
         """[summary]\n
@@ -196,13 +200,14 @@ class BigJunleExtraction(AbsExtraction):
     def restart_driver(self) -> None:
         
         self.driver.quit()
-        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        self.driver = webdriver.Chrome(options=self.options)
         
 class SmallJunleExtraction(AbsExtraction):
+    #TODO:multiprocessの関係上、このクラスのみdriverがローカル変数になっているので、親クラスの変更の繁栄が少し煩雑になっている。
     #TODO:現時点だと、URLの抽出処理全部が完了しないと次のリクエストを出せないようになっているため、時間がかかる。ここで抽出したＵＲＬをscrapy.Requestで投げるようにしたら終了を待たずにクロールできるかも。
     #TODO:GUI側で中止処理したときにdriver,browserを終了させるようにする。
     def _init__(self):
-        super(SmallJunleExtraction, self).__init__()
+        super().__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
 
     def extraction(self, big_junle_list:list) -> list:
@@ -226,7 +231,7 @@ class SmallJunleExtraction(AbsExtraction):
             list: 大ジャンルごとの中小ジャンルリンクリスト\n
         """
         result_list = []
-        driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        driver = webdriver.Chrome(options=self.options)
         
         def get_href() -> None:
             wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
@@ -239,7 +244,7 @@ class SmallJunleExtraction(AbsExtraction):
             exist_driver.delete_all_cookies()
             exist_driver.quit()
             time.sleep(self.RESTART_WAIT_TIME)
-            new_driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+            new_driver = webdriver.Chrome(options=self.options)
             return new_driver
         
         for url in url_list:
@@ -297,10 +302,10 @@ class SeleniumMiddlewares():
         big_junle_list = big_junle_ext.extraction(city_list)
         self.progress_num.value += 1
         big_junle_split_lists = list_split(self.process_count, big_junle_list)
-        apply_results = []
+        apply_results:list[ApplyResult] = []
         for splitElm in big_junle_split_lists:
             oned_list = convert2d_to_1d(splitElm)
-            async_result = self.p.apply_async(small_junle_ext.extraction, args=([oned_list]))
+            async_result:ApplyResult = self.p.apply_async(small_junle_ext.extraction, args=([oned_list]))
             apply_results.append(async_result)
         result = self.__join_process(apply_results)
         print(result)
@@ -313,7 +318,7 @@ class SeleniumMiddlewares():
         
         self.p.terminate()
     
-    def __join_process(self, apply_results:list) -> list:
+    def __join_process(self, apply_results:list[ApplyResult]) -> list:
         """[summary]\n
         各並列処理の戻り値をまとめる。\n
         Args:\n

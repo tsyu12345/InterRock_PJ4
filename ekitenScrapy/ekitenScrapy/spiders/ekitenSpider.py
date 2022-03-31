@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from typing import Any
+from typing import Any, Callable
 from multiprocessing.managers import ValueProxy
 from typing import Literal
 
 import scrapy
 from scrapy.exceptions import CloseSpider
+import scrapy.utils.misc
+import scrapy.core.scraper
+
 import threading as th
 import time
 import re
@@ -48,8 +51,18 @@ class EkitenspiderSpider(scrapy.Spider):
         #dispatcher.connect(self.spider_closed, signals.spider_closed) #type: ignore 
         print("total crawl url: " + str(len(self.small_junle_url_list)))
         print("####init####")
+        scrapy.utils.misc.warn_on_generator_with_return_value = self.warn_on_generator_with_return_value_stub
+        scrapy.core.scraper.warn_on_generator_with_return_value = self.warn_on_generator_with_return_value_stub
         
     
+    def warn_on_generator_with_return_value_stub(spider, callable:Callable):
+        """_summary_\n
+        [release/ver1.0]:exe起動時に、twisted関係のエラーが発生し、正常にスクレイピングされない。\n
+        そのため等関数で、scrapyの内部変数値の値を変更し、エラーを抑制する。
+        """
+        pass
+    
+        
     def __stop_spider(self):
         """
         [summary]\n 
@@ -74,8 +87,10 @@ class EkitenspiderSpider(scrapy.Spider):
         
         self.loading_flg.value = True
         
+        
         for url in self.small_junle_url_list:
             yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+            #yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
         
     def error_process(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
         """Summary Lines
@@ -126,6 +141,7 @@ class EkitenspiderSpider(scrapy.Spider):
             print(next_page_url)
             yield scrapy.Request(next_page_url, callback=self.request_store_page, errback=self.error_process)
 
+    
     
             
     def parse(self, response):

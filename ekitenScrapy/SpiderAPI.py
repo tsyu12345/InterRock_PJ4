@@ -9,6 +9,7 @@ from scrapy.utils.project import get_project_settings
 from scrapy.settings import Settings
 from RequestTotalCount import RequestTotalCount
 from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
+from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
 #共有メモリのインポート
 from multiprocessing.managers import SyncManager, ValueProxy
@@ -77,7 +78,7 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         for crawler_id, url_list in enumerate(crawler_url_list):
             filename: str = './temp/crawler_temp_save_' + str(crawler_id+1)
             self.crawler.crawl(
-                'ekitenSpider', 
+                EkitenspiderSpider,
                 self.counter, 
                 self.loading_flg, 
                 self.end_flg, 
@@ -117,6 +118,7 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
             ['https://www.ekiten.jp/shop_23136354/', 'https://www.ekiten.jp/shop_6634217/', 'https://www.ekiten.jp/shop_28456450/'],
         ]
         """
+        
         
         self.__start_crawler(result)
         print("crawler exit")

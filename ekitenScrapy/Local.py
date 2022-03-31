@@ -1,7 +1,8 @@
 from __future__ import annotations
+from typing import Final as const
 import os
 
-def ArrayElementsReplace(array: list, target_str: str, replace_str:str) -> list:
+def ArrayElementsReplace(array: list[str], target_str: str, replace_str:str) -> list[str]:
     """[summary]
     配列の要素の指定文字列を指定文字列に置換する。
     Arguments:
@@ -16,7 +17,7 @@ def ArrayElementsReplace(array: list, target_str: str, replace_str:str) -> list:
         array[i] = array[i].replace(target_str, replace_str)
     return array
 
-def ArrayStrsToOneStr(array:list):
+def ArrayStrsToOneStr(array:list[str]):
     """[summary]
     配列の要素を一つの文字列にする。
     Arguments:
@@ -62,11 +63,11 @@ def convert2d_to_1d(l:list) -> list:
     
 
 
-def resource_path(relative_path):
+def resource_path(relative_path:str) -> str:
     """
     バイナリフィルのパスを提供
     """
-    base_path = os.path.dirname(__file__)
+    base_path:str = os.path.dirname(__file__)
     return os.path.join(base_path, relative_path)
 
 
