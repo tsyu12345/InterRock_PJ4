@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from typing import Any, Callable
+from typing import Any, Callable, Final as const
 from multiprocessing.managers import ValueProxy
 from typing import Literal
 
