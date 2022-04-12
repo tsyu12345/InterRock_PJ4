@@ -57,6 +57,7 @@ a = Analysis(['main.py'],
                 'scrapy.core.downloader.handlers.ftp', 
                 'scrapy.core.downloader.webclient', 
                 'scrapy.core.downloader.contextfactory', 
+                'scrapy_xlsx',
                 'ekitenScrapy.settings', 
                 'ekitenScrapy.spiders'
             ],

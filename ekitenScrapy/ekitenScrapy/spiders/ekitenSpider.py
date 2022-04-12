@@ -5,9 +5,10 @@ from multiprocessing.managers import ValueProxy
 from typing import Literal
 
 import scrapy
-from scrapy.exceptions import CloseSpider
 import scrapy.utils.misc
 import scrapy.core.scraper
+from scrapy.exceptions import CloseSpider
+
 
 import threading as th
 import time
@@ -24,6 +25,15 @@ from Local import *
 #TODO:エラーハンドリング。
 
 
+def warn_on_generator_with_return_value_stub(spider, callable):
+    """_summary_\n
+        [release/ver1.0]:exe起動時に、twisted関係のエラーが発生し、正常にスクレイピングされない。\n
+        そのため等関数で、scrapyの内部変数値の値を変更し、エラーを抑制する。
+    """
+    pass
+
+scrapy.utils.misc.warn_on_generator_with_return_value = warn_on_generator_with_return_value_stub
+scrapy.core.scraper.warn_on_generator_with_return_value = warn_on_generator_with_return_value_stub
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
@@ -51,16 +61,7 @@ class EkitenspiderSpider(scrapy.Spider):
         #dispatcher.connect(self.spider_closed, signals.spider_closed) #type: ignore 
         print("total crawl url: " + str(len(self.small_junle_url_list)))
         print("####init####")
-        scrapy.utils.misc.warn_on_generator_with_return_value = self.warn_on_generator_with_return_value_stub
-        scrapy.core.scraper.warn_on_generator_with_return_value = self.warn_on_generator_with_return_value_stub
         
-    
-    def warn_on_generator_with_return_value_stub(spider, callable:Callable):
-        """_summary_\n
-        [release/ver1.0]:exe起動時に、twisted関係のエラーが発生し、正常にスクレイピングされない。\n
-        そのため等関数で、scrapyの内部変数値の値を変更し、エラーを抑制する。
-        """
-        pass
     
         
     def __stop_spider(self):
@@ -156,43 +157,38 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         self.loading_flg.value = False
         item = EkitenscrapyItem()
-        print("#####parse#####")
+        
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
         
         tel_elm:str = response.css('div.p-tel_modal_phone_number_section > p::text').extract()[1]
         item['store_tel'] =  tel_elm.replace('\n', '') if tel_elm is not None else None #電話番号
-        print(item['store_tel'])
-        
+                
         name_elm = response.css('h1.p-shop_header_name > a::text').extract_first()
         item['store_name'] =  name_elm if name_elm is not None else None#店名
-        print(item['store_name'])
+        
         
         name_kana_elm = response.css('span.p-shop_header_name_phonetic::text').extract_first()
         item['str_name_kana'] = name_kana_elm if name_kana_elm is not None else None #店名カナ
-        print(item['str_name_kana'])
+        
         
         item['price_plan'] =  self.__judgeChargePlan(response)#料金プラン 
-        print(item['price_plan'])
+        
         
         address_list = self.__addressSegmentation(response)#住所リスト
         jis:JisCode = JisCode()
         assert address_list[1] is not None
         item['pref_code'] = jis.get_jis_code(address_list[1])#都道府県コード
         
-        print(item['pref_code'])
+        
         item['pref'] = address_list[1]#都道府県
-        print(item['pref'])
         item['city'] = address_list[2]#市区町村・番地
-        print(item['city'])
         item['full_address'] = address_list[0] #住所
-        print(item['full_address'])
         
         url:str = response.request.url
-        print(url)
         item['store_link'] = url #scrapingする掲載URL   
         splited_url = url.split('/')
         item['shop_id'] = int(splited_url[3].replace('shop_', ''))#shopID
-        print(item['shop_id'])
+        
         
         home_pages = self.__table_extraction(response, 'URL')
         for i, page in enumerate(home_pages):
@@ -213,23 +209,16 @@ class EkitenspiderSpider(scrapy.Spider):
         for text in pan_list:
             pankuzu_header += text + "/"
         item['pankuzu'] =  pankuzu_header #パンクズヘッダー
-        print(item['pankuzu'])
-        
         
         item['is_official'] = self.__is_official(response)#公式店かどうか
-        print(item['is_official'])
         
         item['evaluation_score'] =  response.css('div.rating_stars_num tooltip > span.tooltip_trigger::text').extract_first()#評価点
-        print(item['evaluation_score'])
         
         item['review_count'] = response.css('span.p-shop_header_rating_detail_review_num::text').extract_first() #レビュー件数
-        print(item['review_count'])
         
         item['access_info'] = response.xpath('/html/body/div[2]/div/div[1]/div[3]/div/div[1]/div[2]/div/div[1]/div/div/div[1]/div/span[1]/span/text()').extract_first() #アクセス情報
-        print(item['access_info'])
         
         first_junle = response.css('ul.p-shop_header_genre > li > a::text').extract_first()
-        print(first_junle)
         item['junle1'] = first_junle if first_junle is not None else None #ジャンル1
         
         other_junle = response.css('ul.p-shop_header_genre > li > span::text').extract()
@@ -238,7 +227,7 @@ class EkitenspiderSpider(scrapy.Spider):
                 break
             else:
                 item['junle' + str(i+2)] =  junle if junle is not None else None #ジャンル2以降
-                print(item['junle' + str(i+2)])
+                
         
         tag_dic = {
             "早朝OK":"can_early_morning",
@@ -251,91 +240,70 @@ class EkitenspiderSpider(scrapy.Spider):
             "配達OK":"can_delivery",
         }
         tag_group = response.css('ul.p-shop_header_tag_list.tag_group > li > a::text').extract()
-        print(tag_group)
+
         for tag in tag_group: 
             if tag in tag_dic:
                 item[tag_dic[tag]] = "●"
-                print(tag_dic[tag] + "●") #各特徴タグの有無
         
         close_station = self.__table_extraction(response, 'アクセス')
         #print(close_station)
         
         item['business_hours'] = self.__extraction_work_time(response)#営業時間
-        print(item['business_hours'])
         
         park_info = self.__table_extraction(response, '駐車場')
         item['park_info'] = park_info[0] if len(park_info) > 0 else None #駐車場情報
-        print(item['park_info'])
         
         card_info_list = self.__table_extraction(response, 'クレジットカード')
         item['credit_info'] = card_info_list[0] if len(card_info_list) > 0 else None #クレジットカード情報
-        print(item['credit_info'])
         
         seat_info_list = self.__table_extraction(response, '座席')
         item['seat_info'] = seat_info_list[0] if len(seat_info_list) > 0 else None #座席情報
-        print(item['seat_info'])
         
         use_case_info_list = self.__table_extraction(response, '用途')
         item['use_case'] = use_case_info_list[0] if len(use_case_info_list) > 0 else None #用途情報
-        print(item['use_case'])
         
         menu_info_list = self.__table_extraction(response, 'メニュー')
         item['menu'] = menu_info_list[0] if len(menu_info_list) > 0 else None #メニュー
-        print(item['menu'])
         
         feature_info_list = self.__table_extraction(response, '特徴')
         item['feature'] = feature_info_list[0] if len(feature_info_list) > 0 else None #特徴
-        print(item['feature'])
         
         point_info_list = self.__table_extraction(response, 'ポイント')
         item['point'] = point_info_list[0] if len(point_info_list) > 0 else None #ポイント
-        print(item['point'])
         
         here_is_great_info_list = self.__table_extraction(response, 'ここがすごい！')
         item['here_is_great'] = here_is_great_info_list[0] if len(here_is_great_info_list) > 0 else None #ここがすごい！
-        print(item['here_is_great'])
         
         media_related_info_list = self.__table_extraction(response, 'メディア関連')
         item['media_related'] = media_related_info_list[0] if len(media_related_info_list) > 0 else None #メディア関連
-        print(item['media_related'])
         
         pricing_info_list = self.__table_extraction(response, '価格設定')
         item['pricing'] = pricing_info_list[0] if len(pricing_info_list) > 0 else None #価格設定
-        print(item['pricing'])
         
         multi_access_list = self.__table_extraction(response, 'マルチアクセス')
         item['multi_access'] = multi_access_list[0] if len(multi_access_list) > 0 else None #マルチアクセス
-        print(item['multi_access']) 
         
         introduction_elm = response.css('div.p-shop_introduction_content.js_toggle_content > div.p-shop_introduction_title::text').extract_first()
         item['introduce'] = introduction_elm if introduction_elm is not None else None #店舗紹介
-        print(item['introduce'])
         
         score_elm = response.css('div.layout_media_wide > div.p-shop_header_rating > span.tooltip_trigger::text').extract_first()
         item['evaluation_score'] =  score_elm if score_elm  is not None else None #評価点
-        print(item['evaluation_score'])
         
         review_cnt_elm = response.css('div.icon_wrapper > span.icon_wrapper_text > a.js-smooth_scroll_exception_floating::text').extract_first()
         item['review_count'] = review_cnt_elm  if review_cnt_elm is not None else None #レビュー件数
-        print(item['review_count'])
         
         img_cnt_elm = response.css('nav.p-shop_detail_nav navigation js_shop_navigation js_floating_target > ul > li.photo > span.p-shop_detail_nav_label_num::text').extract_first()
         item['image_count'] = img_cnt_elm if img_cnt_elm is not None else None #画像件数
-        print(item['image_count']) 
         
         access_info_elm = response.css('p-shop_header_access > div.icon_wrapper > span.tooltip p-shop_header_access_root > span.tooltip_trigger::text').extract_first()
         item['access_info'] = access_info_elm if access_info_elm is not None else None #アクセス情報
-        print(item['access_info'])
         
         catch_cp_elm = response.css('p-shop_introduction_content js_toggle_content > div.p-shop_introduction_title::text').extract_first()
         item['catch_cp'] = catch_cp_elm if catch_cp_elm is not None else None #キャッチコピー
-        print(item['catch_cp'])
         
         item['is_official'] = self.__is_official(response) #公式店舗       
-        print(item['is_official'])
         
-        yield item
-        
+        yield item        
         self.counter.value += 1
         
         """
