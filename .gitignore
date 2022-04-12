@@ -21,3 +21,7 @@ ekitenScrapy/main.dist
 ekitenScrapy/*.pyo
 ekitenScrapy/ekitenScrapy/*.pyc
 *.pyo
+main.build/
+main.dist/
+main.onefile-build/
+main.exe
