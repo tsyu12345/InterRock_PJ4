@@ -33,8 +33,9 @@ class AbsExtraction(object, metaclass=ABCMeta):
     RESTART_WAIT_TIME:int = 300 #ミリ秒
     
     def __init__(self):
-        driver_absolute_path:str = chromedriver_binary.chromedriver_filename
+        driver_absolute_path:str = chromedriver_binary.chromedriver_filename 
         self.driver_path = driver_absolute_path
+        print(self.driver_path)
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
@@ -49,7 +50,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options.add_argument('--ignore-ssl-errors')
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
-        browser_path = resource_path('../../chrome-win/chrome.exe')
+        browser_path = resource_path('../bin/chrome-win/chrome.exe')
         self.options.binary_location = browser_path
         
     @abstractmethod
@@ -78,7 +79,7 @@ class CityUrlExtraction(AbsExtraction):
     
     def __init__(self):
         super().__init__()
-        self.driver = webdriver.Chrome(options=self.options)
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
     
         
     def __CityLinkExtraction(self, pref_code:int) -> list[str]:
@@ -136,7 +137,7 @@ class CityUrlExtraction(AbsExtraction):
     def restart_driver(self) -> None:
         
         self.driver.quit()
-        self.driver = webdriver.Chrome(options=self.options)
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
     
 class BigJunleExtraction(AbsExtraction):
     
@@ -144,7 +145,7 @@ class BigJunleExtraction(AbsExtraction):
     
     def __init__(self):
         super().__init__()
-        self.driver = webdriver.Chrome(options=self.options)
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
 
     def extraction(self, city_url_list:list) -> list:
         """[summary]\n
@@ -200,7 +201,7 @@ class BigJunleExtraction(AbsExtraction):
     def restart_driver(self) -> None:
         
         self.driver.quit()
-        self.driver = webdriver.Chrome(options=self.options)
+        self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         
 class SmallJunleExtraction(AbsExtraction):
     #TODO:multiprocessの関係上、このクラスのみdriverがローカル変数になっているので、親クラスの変更の繁栄が少し煩雑になっている。
@@ -231,7 +232,7 @@ class SmallJunleExtraction(AbsExtraction):
             list: 大ジャンルごとの中小ジャンルリンクリスト\n
         """
         result_list = []
-        driver = webdriver.Chrome(options=self.options)
+        driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
         
         def get_href() -> None:
             wait = WebDriverWait(driver, 20) #waitオブジェクトの生成, 最大20秒待機
@@ -244,7 +245,7 @@ class SmallJunleExtraction(AbsExtraction):
             exist_driver.delete_all_cookies()
             exist_driver.quit()
             time.sleep(self.RESTART_WAIT_TIME)
-            new_driver = webdriver.Chrome(options=self.options)
+            new_driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
             return new_driver
         
         for url in url_list:

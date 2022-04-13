@@ -159,8 +159,11 @@ class EkitenspiderSpider(scrapy.Spider):
         item = EkitenscrapyItem()
         
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
+        try:
+            tel_elm:str | None = response.css('div.p-tel_modal_phone_number_section > p::text').extract()[1]
+        except IndexError:
+            tel_elm = None
         
-        tel_elm:str = response.css('div.p-tel_modal_phone_number_section > p::text').extract()[1]
         item['store_tel'] =  tel_elm.replace('\n', '') if tel_elm is not None else None #電話番号
                 
         name_elm = response.css('h1.p-shop_header_name > a::text').extract_first()
