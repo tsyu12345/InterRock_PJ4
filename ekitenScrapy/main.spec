@@ -6,7 +6,7 @@ block_cipher = None
 
 a = Analysis(['main.py'],
              pathex=['C:\\Users\\syuku\\ProdFolder\\InterRock_PJ4\\ekitenScrapy'],
-             binaries=[ ( 'C:/Users/syuku/ProdFolder/InterRock_PJ4/venv/Lib/site-packages/chromedriver_binary/chromedriver.exe', './chromedriver_binary' )],
+             binaries=[],
              datas=[],
              hiddenimports=[
                 'scrapy.spiderloader', 
