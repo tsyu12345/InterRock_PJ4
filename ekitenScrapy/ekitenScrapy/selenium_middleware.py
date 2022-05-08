@@ -8,7 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
-import chromedriver_binary 
+#import chromedriver_binary 
 from multiprocessing import Pool, freeze_support, TimeoutError
 from multiprocessing.pool import ApplyResult
 
@@ -30,11 +30,12 @@ class AbsExtraction(object, metaclass=ABCMeta):
     """
     
     RETRY_UPPER_LIMIT:int = 3
-    RESTART_WAIT_TIME:int = 300 #ミリ秒
+    RESTART_WAIT_TIME:int = 300 #秒
     
     def __init__(self):
         #driver_absolute_path:str = chromedriver_binary.chromedriver_filename 
-        self.driver_path:const[str] = resource_path("../../bin/chromedriver.exe")
+        #self.driver_path:const[str] = resource_path("../../bin/chromedriver.exe")
+        self.driver_path = "./bin/chromedriver.exe"
         print(self.driver_path)
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
@@ -50,7 +51,8 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options.add_argument('--ignore-ssl-errors')
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
-        browser_path = resource_path('../../bin/chrome-win/chrome.exe')
+        #browser_path = resource_path('../../bin/chrome-win/chrome.exe')
+        browser_path = './bin/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
         
     @abstractmethod

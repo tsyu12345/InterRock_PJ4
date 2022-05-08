@@ -102,7 +102,7 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         self.loading_flg.value = True
         print("####400 error catch####")
-        time.sleep(500)#5分ほど待つ
+        time.sleep(600)#10分ほど待つ
         response = failure.value.response
         url = response.url
         if "shop_" in url:#shop_idが含まれているURLの場合。
@@ -408,6 +408,7 @@ class EkitenspiderSpider(scrapy.Spider):
                 
                 all_address = get_str
                 re_prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
+                #FIXME:'NoneType' object has no attribute 'group'
                 prefecture:str = re_prefecture.group() #type: ignore
                 splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
                 municipalities = splited_address[1]
