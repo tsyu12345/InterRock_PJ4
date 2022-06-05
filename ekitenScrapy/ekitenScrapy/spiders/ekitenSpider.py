@@ -25,7 +25,7 @@ from Local import *
 #TODO:エラーハンドリング。
 
 
-def warn_on_generator_with_return_value_stub(spider, callable):
+def warn_on_generator_with_return_value_stub(spider:scrapy.Spider, callable:Callable):
     """_summary_\n
         [release/ver1.0]:exe起動時に、twisted関係のエラーが発生し、正常にスクレイピングされない。\n
         そのため等関数で、scrapyの内部変数値の値を変更し、エラーを抑制する。
@@ -64,7 +64,7 @@ class EkitenspiderSpider(scrapy.Spider):
         
     
         
-    def __stop_spider(self):
+    def __stop_spider(self): #TODO:Public化してmain側APIで呼び出せるようにする。
         """
         [summary]\n 
         中断フラグがTrueになるか別スレッドで監視する。
@@ -93,7 +93,7 @@ class EkitenspiderSpider(scrapy.Spider):
             yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
             #yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
         
-    def error_process(self, failure):#TODO:ステータスコードが400以上の場合は、リトライする。が、うまくいかない。
+    def error_process(self, failure):#TODO:複数yieldされたとき、403が返された回数分だけ休止処理をしてしまうため効率が激悪い。
         """Summary Lines
         scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
         後にリトライリクエストする。\n
@@ -409,15 +409,17 @@ class EkitenspiderSpider(scrapy.Spider):
                 all_address = get_str
                 re_prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
                 #FIXME:'NoneType' object has no attribute 'group'
-                prefecture:str = re_prefecture.group() #type: ignore
-                splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
-                municipalities = splited_address[1]
+                if re_prefecture is not None:
+                    prefecture:str = re_prefecture.group() #type: ignore
+                    splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
+                    municipalities = splited_address[1]
                 
-                result_list[0] = all_address #type: ignore
-                result_list[1] = prefecture #type: ignore
-                result_list[2] = municipalities #type: ignore
+                    result_list[0] = all_address #type: ignore
+                    result_list[1] = prefecture #type: ignore
+                    result_list[2] = municipalities #type: ignore
         
         return result_list
+                
         
         
     def __judgeChargePlan(self, response) -> str:
