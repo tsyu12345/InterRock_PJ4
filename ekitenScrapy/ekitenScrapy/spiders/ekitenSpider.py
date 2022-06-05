@@ -42,7 +42,7 @@ class EkitenspiderSpider(scrapy.Spider):
     CRAWLED_URL = []
     RETRY_URL = []
     
-    
+    #TODO:小ジャンルの固定辞書化。
     def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], small_junle_url_list:list[str], *args:Any, **kwargs:Any) -> None:
         """
         Summary Lines\n
@@ -62,20 +62,6 @@ class EkitenspiderSpider(scrapy.Spider):
         print("total crawl url: " + str(len(self.small_junle_url_list)))
         print("####init####")
         
-    
-        
-    def __stop_spider(self): #TODO:Public化してmain側APIで呼び出せるようにする。
-        """
-        [summary]\n 
-        中断フラグがTrueになるか別スレッドで監視する。
-        #このやり方は正直びみょい。
-        """
-        while True:
-            if self.end_flg.value == True:
-                #self.middleware.stop()
-                raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
-
-
     def start_requests(self):
         """
         Summary Lines
@@ -91,26 +77,7 @@ class EkitenspiderSpider(scrapy.Spider):
         
         for url in self.small_junle_url_list:
             yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
-            #yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
-        
-    def error_process(self, failure):#TODO:複数yieldされたとき、403が返された回数分だけ休止処理をしてしまうため効率が激悪い。
-        """Summary Lines
-        scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
-        後にリトライリクエストする。\n
-        Args:
-            failure (scrapy.Request): scrapy.Request
-        """
-        self.loading_flg.value = True
-        print("####400 error catch####")
-        time.sleep(600)#10分ほど待つ
-        response = failure.value.response
-        url = response.url
-        if "shop_" in url:#shop_idが含まれているURLの場合。
-            yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
-        else:
-            yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
-        #yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
-        #self.RETRY_URL.append(url)
+            #yield scrapy.Request(url, callback=self.parse, errback=self.error_process)    
     
     def request_store_page(self, response):
         """Summary Lines
@@ -143,8 +110,6 @@ class EkitenspiderSpider(scrapy.Spider):
             yield scrapy.Request(next_page_url, callback=self.request_store_page, errback=self.error_process)
 
     
-    
-            
     def parse(self, response):
         #TODO:未抽出項目の追加、修正。
         """
@@ -317,6 +282,38 @@ class EkitenspiderSpider(scrapy.Spider):
         item['longitude'] =  #経度
         item['closest_station'] =  #最寄り駅
         """
+    ### Private Methods ###
+
+    def __stop_spider(self): #TODO:Public化してmain側APIで呼び出せるようにする。
+        """
+        [summary]\n 
+        中断フラグがTrueになるか別スレッドで監視する。
+        #このやり方は正直びみょい。
+        """
+        while True:
+            if self.end_flg.value == True:
+                #self.middleware.stop()
+                raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
+
+        
+    def error_process(self, failure):#TODO:複数yieldされたとき、403が返された回数分だけ休止処理をしてしまうため効率が激悪い。
+        """Summary Lines
+        scrapy.Requestで例外発生時（response.stasusが400、500台）にcallbackする。\n
+        後にリトライリクエストする。\n
+        Args:
+            failure (scrapy.Request): scrapy.Request
+        """
+        self.loading_flg.value = True
+        print("####400 error catch####")
+        time.sleep(600)#10分ほど待つ
+        response = failure.value.response
+        url = response.url
+        if "shop_" in url:#shop_idが含まれているURLの場合。
+            yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
+        else:
+            yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+        #yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+        #self.RETRY_URL.append(url)
     
     def __extraction_work_time(self, response) -> str|None:
         """[summary]\n
