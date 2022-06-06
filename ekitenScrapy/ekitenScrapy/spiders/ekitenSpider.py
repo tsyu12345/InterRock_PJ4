@@ -405,9 +405,9 @@ class EkitenspiderSpider(scrapy.Spider):
                 
                 all_address = get_str
                 re_prefecture = re.search(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
-                #FIXME:'NoneType' object has no attribute 'group'
+                
                 if re_prefecture is not None:
-                    prefecture:str = re_prefecture.group() #type: ignore
+                    prefecture:str = re_prefecture.group() 
                     splited_address = re.split(r'東京都|北海道|(?:京都|大阪)府|.{2,3}県', get_str)
                     municipalities = splited_address[1]
                 
