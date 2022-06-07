@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Final as const
 from multiprocessing.managers import ValueProxy
-from typing import Literal
+from unicodedata import category
 
 import scrapy
 import scrapy.utils.misc
@@ -14,8 +14,7 @@ import threading as th
 import time
 import re
 from ekitenScrapy.items import EkitenscrapyItem
-from pydispatch import dispatcher
-
+from ekitenScrapy.spiders.GenleDef import Genre, CATEGORY
 from ..middlewares import *
 from ..JisCode import JisCode
 import sys
@@ -28,12 +27,12 @@ from Local import *
 def warn_on_generator_with_return_value_stub(spider:scrapy.Spider, callable:Callable):
     """_summary_\n
         [release/ver1.0]:exe起動時に、twisted関係のエラーが発生し、正常にスクレイピングされない。\n
-        そのため等関数で、scrapyの内部変数値の値を変更し、エラーを抑制する。
     """
     pass
-
 scrapy.utils.misc.warn_on_generator_with_return_value = warn_on_generator_with_return_value_stub
 scrapy.core.scraper.warn_on_generator_with_return_value = warn_on_generator_with_return_value_stub
+
+
 class EkitenspiderSpider(scrapy.Spider):
     name = 'ekitenSpider'
     allowed_domains = ['ekiten.jp']
@@ -43,7 +42,7 @@ class EkitenspiderSpider(scrapy.Spider):
     RETRY_URL = []
     
     #TODO:小ジャンルの固定辞書化。
-    def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], small_junle_url_list:list[str], *args:Any, **kwargs:Any) -> None:
+    def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], city_url_list:list[str], *args:Any, **kwargs:Any) -> None:
         """
         Summary Lines\n
         初期化処理。selenium_middlewareから受け取ったURLリストに従い、店舗ページをクロールする。\n
@@ -58,6 +57,7 @@ class EkitenspiderSpider(scrapy.Spider):
         self.loading_flg = loading_flg 
         self.end_flg = end_flg 
         self.small_junle_url_list = small_junle_url_list 
+        self.city_url_list = city_url_list 
         #dispatcher.connect(self.spider_closed, signals.spider_closed) #type: ignore 
         print("total crawl url: " + str(len(self.small_junle_url_list)))
         print("####init####")
@@ -65,20 +65,22 @@ class EkitenspiderSpider(scrapy.Spider):
     def start_requests(self):
         """
         Summary Lines
-        店舗URLを取得する前処理。各ジャンルのページリンクを取得する。
-        Yields:
-            str: middlewareで返却された小ジャンルURL
+        クローリング前処理。city_url_listに格納されたURLに従い、クロール対象カテゴリURLを作成する。
         """
+        #終了監視用のスレッドを起動
         visor = th.Thread(target=self.__stop_spider, daemon=True)
         visor.start()
-        
+        #ローディングフラグをTrueにする。
         self.loading_flg.value = True
         
         
+        """
         for url in self.small_junle_url_list:
             yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
             #yield scrapy.Request(url, callback=self.parse, errback=self.error_process)    
-    
+        """
+        
+        
     def request_store_page(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
@@ -448,4 +450,46 @@ class EkitenspiderSpider(scrapy.Spider):
             result = "無料会員"
         """
         return result
+    
+    
+    def generate_crawl_url(self) -> list[str]:
+        """_summary_\n
+        市区町村URLを受け取り、カテゴリURLを生成する。\n
+        市区町村 > ジャンル > カテゴリページのURL生成\n
+        Returns:
+            str: カテゴリページクラスのURL
+        """
+        #city_url_listに格納されたURLに従い、クロール対象カテゴリURLを作成する。
+        url_list: list[str] = []
+        genre_keys: const = Genre.GENLE_LIST.keys()
         
+        for url, genre_key in zip(self.city_url_list, genre_keys):
+            """
+            url: 市区町村レベルのURL(Ex: https://www.ekiten.jp/area/a_city36204/)
+            genre_key: ジャンルのキー
+            """
+            categories: const[list[str]] = self.__get_category_strs(genre_key)
+            for category in categories:
+                #クロール対象URLの生成
+                generate_url: const[str] = "https://www.ekiten.jp/" + category + "/" #TODO:[都道府県/市区町村]の文字列の追加。
+                url_list.append(generate_url)
+        
+        return url_list
+    
+    
+    def __get_category_strs(self, key:str) -> list[str]:
+        """_summary_\n
+        指定キーのカテゴリの接頭辞のリストを返す。
+        Returns:\n
+            list[str]\n
+        """
+        return list(Genre.GENLE_LIST[key].values())
+    
+    
+    def __get_area_strs(self) -> str:
+        """_summary_\n
+        [都道府県/市区町村]の文字列を返す。
+        Returns:\n
+            list[str]\n
+        """
+        pass

@@ -5,7 +5,7 @@
 from __future__ import annotations
 from typing import Final as const, Type, TypeVar
 
-class __CATEGORY():
+class CATEGORY():
     
     RELAX_BODY_CARE:const = {
         "整体": "cat_seitai",
@@ -246,20 +246,20 @@ class Genre():
     ジャンルクラス\n
     ジャンル名:{カテゴリ名:接頭辞}
     """
-    GENLE_LIST: const[dict[str, dict]] = {
-        "リラク・ボディケア":__CATEGORY.RELAX_BODY_CARE,
-        "ヘアサロン・ネイル":__CATEGORY.HAIR_SALON_NEIL,
-        "学習塾・予備校":__CATEGORY.CRAM_SCHOOL,
-        "習い事・スクール":__CATEGORY.LESSON,
-        "歯科・矯正歯科":__CATEGORY.DENTISTRY,
-        "医院・クリニック・ヘルスケア":__CATEGORY.HOSPITAL,
-        "グルメ":__CATEGORY.GOURMET,
-        "ショッピング":__CATEGORY.SHOPPING,
-        "お出かけ・レジャー":__CATEGORY.LEISURE,
-        "リサイクル・中古買取り":__CATEGORY.RECYCLE,
-        "ペット・動物":__CATEGORY.PET_ANIMAL,
-        "出張デリバリー・生活サービス":__CATEGORY.DELIVERY,
-        "住宅・不動産":__CATEGORY.HOME_ESTATE,
-        "冠婚葬祭":__CATEGORY.CEREMONIAL
+    GENLE_LIST: const[dict[str, dict[str,str]]] = {
+        "リラク・ボディケア":CATEGORY.RELAX_BODY_CARE,
+        "ヘアサロン・ネイル":CATEGORY.HAIR_SALON_NEIL,
+        "学習塾・予備校":CATEGORY.CRAM_SCHOOL,
+        "習い事・スクール":CATEGORY.LESSON,
+        "歯科・矯正歯科":CATEGORY.DENTISTRY,
+        "医院・クリニック・ヘルスケア":CATEGORY.HOSPITAL,
+        "グルメ":CATEGORY.GOURMET,
+        "ショッピング":CATEGORY.SHOPPING,
+        "お出かけ・レジャー":CATEGORY.LEISURE,
+        "リサイクル・中古買取り":CATEGORY.RECYCLE,
+        "ペット・動物":CATEGORY.PET_ANIMAL,
+        "出張デリバリー・生活サービス":CATEGORY.DELIVERY,
+        "住宅・不動産":CATEGORY.HOME_ESTATE,
+        "冠婚葬祭":CATEGORY.CEREMONIAL
     }
     
