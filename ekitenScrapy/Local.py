@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Final as const
 import os
 
 def ArrayElementsReplace(array: list[str], target_str: str, replace_str:str) -> list[str]:
@@ -91,9 +90,9 @@ def process_join(apply_results: list):
             break
     return return_list
                 
-def list_split(n:int, l:list) -> list:
+def list_split(n:int, l:list) -> list[list]: #TODO:Type annotationを加える。ジェネリックで。
     """Summary Line:\n
-    リストを指定数に分割し、そのタプルを返却する。
+    リストを指定数に分割する。
     Args:\n
         n (int): 分割数\n
         l (list): 分割対象のリスト\n

@@ -8,6 +8,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings 
 from scrapy.settings import Settings
 from RequestTotalCount import RequestTotalCount
+from ekitenScrapy.Local import list_split
 from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
 from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
@@ -65,29 +66,36 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.progress_num:ValueProxy[int] = maneger.Value('i', 0) #進捗状況の表示用    
         
         #middlewareインスタンスの生成
-        self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
+        self.middleware = SeleniumMiddlewares(self.pref_list, self.progress_num)
         self.crawler = CrawlerProcess(self.settings)
         
         #分散クロール結果の一時保存先を格納したリスト
         self.crawler_temp_save_list:list[str] = []
     
-    def __start_crawler(self, crawler_url_list:list[list[str]]) -> None:
+    def __start_crawler(self, crawler_url_list:list[str], crawler_process_count:int) -> None:
         """_summary_\n
         分散クロール用に追加されるクローラーごとに異なる設定のクローラー設定を用意し、Scrapyに予約する。
+        Args:\n
+            crawler_url_list(list[str]): クロールするURLのリスト\n
+            crawler_process_count(int): クローラーのプロセス数\n
         """
-        for crawler_id, url_list in enumerate(crawler_url_list):
+        crawl_list: list[list[str]] = list_split(crawler_process_count, crawler_url_list)        
+        
+            
+            
+        for crawler_id, url_list in enumerate(crawl_list):
             filename: str = './temp/crawler_temp_save_' + str(crawler_id+1)
             self.crawler.crawl(
                 EkitenspiderSpider,
                 self.counter, 
                 self.loading_flg, 
                 self.end_flg, 
-                url_list,
+                url_list, #type: list[str]
                 comment='test',
                 filename=filename,
             )
             filename = filename + self.FILE_EXTENSION #拡張子をつけてからリストへ格納。
-            print("crawler_id:", filename)
+        
             self.crawler_temp_save_list.append(filename)
         
         self.crawler.start() 
@@ -120,7 +128,7 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         
         
-        self.__start_crawler(result)
+        self.__start_crawler(result, 4)
         print("crawler exit")
         self.progress_num.value += 1
         print(self.crawler_temp_save_list)
