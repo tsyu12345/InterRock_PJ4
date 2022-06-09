@@ -270,8 +270,36 @@ class SmallJunleExtraction(AbsExtraction):
 
     def restart_driver(self) -> None:
         pass
+
+
+class AreaUrlExtraction(AbsExtraction):#TODO:[都道府県/市区町村]の文字列を抽出するコードの記載。
+    """_summary_\n
+    [都道府県/市区町村]の文字列を抽出する
+    """
+    
+    def __init__(self, city_list:list[str]):
+        super().__init__()
+        self.city_list = city_list
         
-class SeleniumMiddlewares():
+        self.driver: const = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        self.wait: const = WebDriverWait(self.driver, 20)
+        
+    
+    def extraction(self) -> list[str]:
+        
+        results: list[str] = []
+        
+        for city_url in self.city_list:
+            self.driver.get(city_url)
+            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'l-side_contents_search_tooltip_inner')))
+            
+            #１つジャンルリンクへ遷移すると、目的の文字列が手に入るので、それを抽出する。
+            genre_a_tag = self.driver.find_element_by_css_selector('div.l-side_contents_search_tooltip_inner > div > ul.l-side_contents_search_images > li > a')
+            url: const[str] = genre_a_tag.get_attribute('href')
+            print(url)
+            #results.append(url)
+
+class SeleniumMiddlewares(): #TODO:small_junle_extractionの廃止。と[都道府県/市区町村]の文字列を返却する使用に変更。
     
     def __init__(self, area_list:list, process_count:int, progress_num_value:ValueProxy[int]) -> None:
         """[summary]\n

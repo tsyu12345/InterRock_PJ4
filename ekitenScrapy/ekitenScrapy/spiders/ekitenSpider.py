@@ -42,7 +42,7 @@ class EkitenspiderSpider(scrapy.Spider):
     RETRY_URL = []
     
     #TODO:小ジャンルの固定辞書化。
-    def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], city_url_list:list[str], *args:Any, **kwargs:Any) -> None:
+    def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], pref_city_str:str,*args:Any, **kwargs:Any) -> None:
         """
         Summary Lines\n
         初期化処理。selenium_middlewareから受け取ったURLリストに従い、店舗ページをクロールする。\n
@@ -50,17 +50,15 @@ class EkitenspiderSpider(scrapy.Spider):
             counter (Maneger.Value('i', 0)): 処理済み数を格納する共有メモリ変数\n
             loading_flg (Manager.Value('b', False)): ローディング中かどうかを格納する共有メモリ変数\n
             end_flg (Manager.Value('b', False)): 中断時のフラグを格納する共有メモリ変数\n
-            small_junle_url_list (list): 小ジャンルURLリスト\n
+            pref_city_str (str): 地域を表す文字列.[都道府県/市区町村]のフォーマット\n
         """ 
         super().__init__(*args, **kwargs)
         self.counter = counter 
         self.loading_flg = loading_flg 
         self.end_flg = end_flg 
-        self.small_junle_url_list = small_junle_url_list 
-        self.city_url_list = city_url_list 
-        #dispatcher.connect(self.spider_closed, signals.spider_closed) #type: ignore 
-        print("total crawl url: " + str(len(self.small_junle_url_list)))
-        print("####init####")
+        
+        self.pref_city_str = pref_city_str 
+        
         
     def start_requests(self):
         """
@@ -73,15 +71,21 @@ class EkitenspiderSpider(scrapy.Spider):
         #ローディングフラグをTrueにする。
         self.loading_flg.value = True
         
-        
+        #TODO:generate_crawl_urls()を実行する。
         """
         for url in self.small_junle_url_list:
             yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
             #yield scrapy.Request(url, callback=self.parse, errback=self.error_process)    
         """
+    
+    def request_category_page(self, response:scrapy.Request) -> None:
+        """_summary_\n
+        生成されたURLに遷移し、request_parseを呼び出す。\n
         
+        """
+        pass
         
-    def request_store_page(self, response):
+    def request_parse(self, response):
         """Summary Lines
         店舗検索処理。スクレイピング処理をする店舗URLを取得する。
         Args:
@@ -452,7 +456,7 @@ class EkitenspiderSpider(scrapy.Spider):
         return result
     
     
-    def generate_crawl_url(self) -> list[str]:
+    def generate_crawl_urls(self) -> list[str]:
         """_summary_\n
         市区町村URLを受け取り、カテゴリURLを生成する。\n
         市区町村 > ジャンル > カテゴリページのURL生成\n
@@ -463,7 +467,7 @@ class EkitenspiderSpider(scrapy.Spider):
         url_list: list[str] = []
         genre_keys: const = Genre.GENLE_LIST.keys()
         
-        for url, genre_key in zip(self.city_url_list, genre_keys):
+        for genre_key in genre_keys:
             """
             url: 市区町村レベルのURL(Ex: https://www.ekiten.jp/area/a_city36204/)
             genre_key: ジャンルのキー
@@ -471,7 +475,7 @@ class EkitenspiderSpider(scrapy.Spider):
             categories: const[list[str]] = self.__get_category_strs(genre_key)
             for category in categories:
                 #クロール対象URLの生成
-                generate_url: const[str] = "https://www.ekiten.jp/" + category + "/" #TODO:[都道府県/市区町村]の文字列の追加。
+                generate_url: const[str] = "https://www.ekiten.jp/" + category + "/" + self.pref_city_str 
                 url_list.append(generate_url)
         
         return url_list
@@ -484,12 +488,3 @@ class EkitenspiderSpider(scrapy.Spider):
             list[str]\n
         """
         return list(Genre.GENLE_LIST[key].values())
-    
-    
-    def __get_area_strs(self) -> str:
-        """_summary_\n
-        [都道府県/市区町村]の文字列を返す。
-        Returns:\n
-            list[str]\n
-        """
-        pass
