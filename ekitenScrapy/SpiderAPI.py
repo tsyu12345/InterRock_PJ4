@@ -8,7 +8,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings 
 from scrapy.settings import Settings
 from RequestTotalCount import RequestTotalCount
-from ekitenScrapy.Local import list_split
+from Local import list_split
 from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
 from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 

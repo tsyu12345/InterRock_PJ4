@@ -10,7 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 
-from JisCode import JisCode
+from .JisCode import JisCode
 
 import time
 
@@ -74,7 +74,7 @@ class BrowserRetryError(Exception):
     pass
         
 class CityUrlExtraction(AbsExtraction):
-    
+    #TODO:並列処理による高速化。
     def __init__(self):
         super().__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)

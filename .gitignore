@@ -25,3 +25,6 @@ main.build/
 main.dist/
 main.onefile-build/
 main.exe
+ekitenScrapy/ekitenScrapy/spiders/func.py
+dict.txt
+dict.py

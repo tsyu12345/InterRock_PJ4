@@ -39,7 +39,7 @@ class EkitenspiderSpider(scrapy.Spider):
     CRAWLED_URL = []
     RETRY_URL = []
     
-    #TODO:小ジャンルの固定辞書化。
+    
     def __init__(self, counter:ValueProxy[int], loading_flg:ValueProxy[bool], end_flg:ValueProxy[bool], pref_city_strs:list[str],*args:Any, **kwargs:Any) -> None:
         """
         Summary Lines\n
@@ -446,6 +446,7 @@ class EkitenspiderSpider(scrapy.Spider):
         else:
             result = "無料会員"
         """
+        
         return result
     
     
