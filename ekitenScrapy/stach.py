@@ -10,7 +10,7 @@ def __stop_spider(self):
                 raise CloseSpider("spider cancelled")#無理やり例外をスローし終了。
 
 
-    def start_requests(self):
+    def __start_requests(self):
         """
         Summary Lines
         店舗URLを取得する前処理。各ジャンルのページリンクを取得する。

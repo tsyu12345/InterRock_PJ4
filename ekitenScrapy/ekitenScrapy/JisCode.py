@@ -1,10 +1,11 @@
 from __future__ import annotations
+from typing import Final as const
 
 class JisCode:
     """_summary_\n
     都道府県名とそのJISコードを定義する。
     """
-    JISCODE_DICT:dict[str, int] = {
+    JISCODE_DICT:const[dict[str, int]] = {
         "北海道": 1,
         "青森県": 2,
         "岩手県": 3,
