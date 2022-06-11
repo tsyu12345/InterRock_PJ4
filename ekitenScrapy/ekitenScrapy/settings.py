@@ -22,6 +22,7 @@ FEED_EXPORTERS = {
 #FEED_URI = './test.csv'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
+HTTPERROR_ALLOWED_CODES = [404]
 USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36'
 
 # Obey robots.txt rules

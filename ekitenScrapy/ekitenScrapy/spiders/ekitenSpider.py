@@ -58,14 +58,16 @@ class EkitenspiderSpider(scrapy.Spider):
         self.pref_city_strs = pref_city_strs
         
         
+        
+        
     def start_requests(self):
         """
         Summary Lines
         クローリング前処理。city_url_listに格納されたURLに従い、クロール対象カテゴリURLを作成する。
         """
         #終了監視用のスレッドを起動
-        #visor = th.Thread(target=self.__stop_spider, daemon=True)
-        #visor.start()
+        visor = th.Thread(target=self.__stop_spider, daemon=True)
+        visor.start()
         #ローディングフラグをTrueにする。
         self.loading_flg.value = True
         
@@ -117,7 +119,7 @@ class EkitenspiderSpider(scrapy.Spider):
             items.ShopItem: 店舗情報を格納するitemオブジェクト
         """
         self.loading_flg.value = False
-        item = {}
+        item = EkitenscrapyItem()
         
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
         try:
@@ -267,7 +269,8 @@ class EkitenspiderSpider(scrapy.Spider):
         
         item['is_official'] = self.__is_official(response) #公式店舗       
         
-        yield item        
+        yield item
+        
         self.counter.value += 1
         
         """
@@ -299,9 +302,12 @@ class EkitenspiderSpider(scrapy.Spider):
         Args:
             failure (scrapy.Request): scrapy.Request
         """
+        #TODO:一度Requestを放ち、その結果でpauseするか判断する。
+            # result :403 -> そのままpause
+            # result :200 -> 通常のparse, request_parseのやり直し。
         self.loading_flg.value = True
         print("####400 error catch####")
-        time.sleep(600)#10分ほど待つ
+        time.sleep(300)
         response = failure.value.response
         url = response.url
         if "shop_" in url:#shop_idが含まれているURLの場合。
@@ -309,7 +315,17 @@ class EkitenspiderSpider(scrapy.Spider):
         else:
             yield scrapy.Request(url, callback=self.request_parse, errback=self.error_process)
         #yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+        
         #self.RETRY_URL.append(url)
+        
+    def __crawl_pause(self, time_stamp:int = 300) -> None:
+        """_summary_\n
+        クロールをポーズする。
+        Args:
+            time_stamp (int) : 待機時間（秒）
+            default: 300
+        """
+        time.sleep(time_stamp)
     
     def __extraction_work_time(self, response) -> str|None:
         """[summary]\n

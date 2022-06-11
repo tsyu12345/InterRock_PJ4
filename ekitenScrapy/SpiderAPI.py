@@ -38,6 +38,7 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
     FEED_EXPORT_FIELDS: const[list[str]] = [item_key for item_key in COLUMN_MENUS.keys()]
     FILE_FORMAT: const[str] = 'xlsx'
     FILE_EXTENSION: const[str] = '.' + FILE_FORMAT
+    TEMP_DIR: const[str] = "./temp"
     
     def __init__(self, pref_list:list[str], save_path:str, junle:str):
         """_summary_\n
@@ -84,7 +85,8 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
             
             
         for crawler_id, url_list in enumerate(crawl_list):
-            filename: str = './temp/crawler_temp_save_' + str(crawler_id+1)
+            filename: str = self.TEMP_DIR + "/" + 'crawler_temp_save_' + str(crawler_id+1)
+            
             self.crawler.crawl(
                 EkitenspiderSpider,
                 self.counter, 
@@ -95,11 +97,11 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
                 filename=filename,
             )
             filename = filename + self.FILE_EXTENSION #拡張子をつけてからリストへ格納。
-        
+            
             self.crawler_temp_save_list.append(filename)
         
         self.crawler.start()
-        self.crawler.join()
+        
         
     def run(self) -> None:
         """[summary]\n
@@ -113,26 +115,19 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         count = RequestTotalCount(self.pref_list).get_count()
         print("totalCount: "+str(count))
         self.total_counter.value = count
-        result = self.middleware.run()
+        #result = self.middleware.run()
         #print("result: "+str(len(result[0])))
         #result = list_split(4, result)#4つのクローラーで並列できるように分割
         self.progress_num.value += 1
         
         #試験用
-        """
         result = [
-            ['https://www.ekiten.jp/shop_88106804/', 'https://www.ekiten.jp/shop_89135856/', 'https://www.ekiten.jp/shop_42622487/'],
-            ['https://www.ekiten.jp/shop_2869541/', 'https://www.ekiten.jp/shop_2933537/', 'https://www.ekiten.jp/shop_2883346/'],
-            ['https://www.ekiten.jp/shop_11915211/', 'https://www.ekiten.jp/shop_7145303/', 'https://www.ekiten.jp/shop_6634217/'],
-            ['https://www.ekiten.jp/shop_23136354/', 'https://www.ekiten.jp/shop_6634217/', 'https://www.ekiten.jp/shop_28456450/'],
+            "tokushima/ananshi/",
         ]
-        """
-        
-        
         self.__start_crawler(result, 1)
         print("crawler exit")
         self.progress_num.value += 1
-        #self.__save_crawl_result()
+        self.__save_crawl_result()
         
     def stop(self):
         self.end_flg.value = True
