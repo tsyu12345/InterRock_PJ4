@@ -1,13 +1,13 @@
 #型注釈の有効化
 from __future__ import annotations
-from typing import Any, Optional, Iterator, Final as const
+from typing import Any,  Final as const
 
 #GUI関係のインポート
 import PySimpleGUI as gui
 from StartUpWindow import StartUpWindow, SelectPrefectureWindow
 from RuntimeWindow import RuntimeWindow
 import sys
-import traceback
+#import traceback
 
 #Scrapy
 from SpiderAPI import SpiderCall

@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Final as const
 from multiprocessing.managers import ValueProxy
+from scrapy.http import Response
 
 import scrapy
 import scrapy.utils.misc
@@ -307,18 +308,24 @@ class EkitenspiderSpider(scrapy.Spider):
             # result :200 -> 通常のparse, request_parseのやり直し。
         self.loading_flg.value = True
         print("####400 error catch####")
-        time.sleep(300)
-        response = failure.value.response
-        url = response.url
-        if "shop_" in url:#shop_idが含まれているURLの場合。
-            yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
-        else:
-            yield scrapy.Request(url, callback=self.request_parse, errback=self.error_process)
-        #yield scrapy.Request(url, callback=self.request_store_page, errback=self.error_process)
+        response: Response = failure.value.response
+        yield scrapy.Request(response.url, callback=self.__restart_crawl, errback=self.__crawl_pause)
         
-        #self.RETRY_URL.append(url)
+    
+    def __crawl_pause(self, response:Response):
+        """_summary_\n
+        error_processの結果403系でリトライするために呼び出される。\n
+        """
+        wait_time:int = 400
+        print("####403 error catch####")
+        print(f"SPIDER STOPING AT{wait_time}sec...")
+        self.__temp_pause(wait_time)
         
-    def __crawl_pause(self, time_stamp:int = 300) -> None:
+        yield scrapy.Request(response.url, callback=self.__restart_crawl, errback=self.__crawl_pause)
+        print("RESTARTING...")
+        
+        
+    def __temp_pause(self, time_stamp:int = 300) -> None:
         """_summary_\n
         クロールをポーズする。
         Args:
@@ -326,6 +333,18 @@ class EkitenspiderSpider(scrapy.Spider):
             default: 300
         """
         time.sleep(time_stamp)
+        
+    
+    def __restart_crawl(self, response: Response):
+        """_summary_\n
+        クロールを再開する。
+        """
+        url: str = response.url
+        if "shop_" in url:#shop_idが含まれているURLの場合。
+            yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
+        else:
+            yield scrapy.Request(url, callback=self.request_parse, errback=self.error_process)
+    
     
     def __extraction_work_time(self, response) -> str|None:
         """[summary]\n

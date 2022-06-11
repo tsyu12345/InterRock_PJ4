@@ -115,17 +115,18 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         count = RequestTotalCount(self.pref_list).get_count()
         print("totalCount: "+str(count))
         self.total_counter.value = count
-        #result = self.middleware.run()
-        #print("result: "+str(len(result[0])))
-        #result = list_split(4, result)#4つのクローラーで並列できるように分割
+        result = self.middleware.run()
         self.progress_num.value += 1
         
         #試験用
+        """
         result = [
             "tokushima/ananshi/",
         ]
-        self.__start_crawler(result, 1)
+        """
+        self.__start_crawler(result, 4)
         print("crawler exit")
+        
         self.progress_num.value += 1
         self.__save_crawl_result()
         
@@ -151,6 +152,6 @@ if __name__ == "__main__":
     GUIなしで実行する場合に使用する。
     """
     print("SPIDER START")
-    test = SpiderCall(["徳島県"], "./result.xlsx", "NONE")
+    test = SpiderCall(["徳島県"], "./TEST.xlsx", "NONE")
     test.run()
     print("SPIDER END")

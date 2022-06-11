@@ -31,7 +31,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
     def __init__(self):
         #driver_absolute_path:str = chromedriver_binary.chromedriver_filename 
         #self.driver_path:const[str] = resource_path("../../bin/chromedriver.exe")
-        self.driver_path = "./bin/chromedriver.exe"
+        self.driver_path = "../bin/chromedriver.exe"
         print(self.driver_path)
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
@@ -48,7 +48,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
         #browser_path = resource_path('../../bin/chrome-win/chrome.exe')
-        browser_path = './bin/chrome-win/chrome.exe'
+        browser_path = '../bin/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
         
     @abstractmethod
