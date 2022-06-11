@@ -98,7 +98,8 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         
             self.crawler_temp_save_list.append(filename)
         
-        self.crawler.start() 
+        self.crawler.start()
+        self.crawler.join()
         
     def run(self) -> None:
         """[summary]\n
@@ -128,11 +129,10 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         
         
-        self.__start_crawler(result, 4)
+        self.__start_crawler(result, 1)
         print("crawler exit")
         self.progress_num.value += 1
-        print(self.crawler_temp_save_list)
-        self.__save_crawl_result()
+        #self.__save_crawl_result()
         
     def stop(self):
         self.end_flg.value = True

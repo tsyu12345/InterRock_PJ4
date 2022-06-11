@@ -64,8 +64,8 @@ class EkitenspiderSpider(scrapy.Spider):
         クローリング前処理。city_url_listに格納されたURLに従い、クロール対象カテゴリURLを作成する。
         """
         #終了監視用のスレッドを起動
-        visor = th.Thread(target=self.__stop_spider, daemon=True)
-        visor.start()
+        #visor = th.Thread(target=self.__stop_spider, daemon=True)
+        #visor.start()
         #ローディングフラグをTrueにする。
         self.loading_flg.value = True
         
@@ -87,11 +87,10 @@ class EkitenspiderSpider(scrapy.Spider):
         """
         #self.start_urls = self.search(response)
         self.loading_flg.value = True
-        print(type(response.status))
         self.RETEYED = 0 #成功したらリトライカウントをリセット
         for elm in response.css('div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a'):
-            href = elm.css('a::attr(href)').extract_first()
-            url = response.urljoin(href)
+            href:str = elm.css('a::attr(href)').extract_first()
+            url:str = response.urljoin(href)
             if url not in self.CRAWLED_URL:#重複スクレイピング対策
                 self.CRAWLED_URL.append(url)
                 yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
@@ -118,7 +117,7 @@ class EkitenspiderSpider(scrapy.Spider):
             items.ShopItem: 店舗情報を格納するitemオブジェクト
         """
         self.loading_flg.value = False
-        item = EkitenscrapyItem()
+        item = {}
         
         #item['store_big_junle'] = response.css('').extract_first() #（保留）大ジャンル
         try:
