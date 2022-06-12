@@ -113,15 +113,15 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         count = RequestTotalCount(self.pref_list).get_count()
         print("totalCount: "+str(count))
         self.total_counter.value = count
-        result = self.middleware.run()
+        #result = self.middleware.run()
         self.progress_num.value += 1
         
         #試験用
-        """
+        
         result = [
-            "tokushima/ananshi/",
+            "tottori/iwamigun/"
         ]
-        """
+        
         self.__start_crawler(result, 4)
         print("crawler exit")
         
