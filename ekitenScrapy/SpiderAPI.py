@@ -82,11 +82,9 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         """
         crawl_list: list[list[str]] = list_split(crawler_process_count, crawler_url_list)        
         
-            
-            
         for crawler_id, url_list in enumerate(crawl_list):
             filename: str = self.TEMP_DIR + "/" + 'crawler_temp_save_' + str(crawler_id+1)
-            
+            print("CRAWL AREA LIST:", url_list)
             self.crawler.crawl(
                 EkitenspiderSpider,
                 self.counter, 

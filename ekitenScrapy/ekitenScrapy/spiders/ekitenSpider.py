@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Final as const
 from multiprocessing.managers import ValueProxy
+from unicodedata import category
 from scrapy.http import Response
 
 import scrapy
@@ -74,6 +75,7 @@ class EkitenspiderSpider(scrapy.Spider):
         
     
         urls:const[list[str]] = self.generate_crawl_urls()
+        print("CRAWLING URL:", len(urls))
         for url in urls:
             yield scrapy.Request(url, callback=self.request_parse, errback=self.error_process)
         
@@ -101,13 +103,15 @@ class EkitenspiderSpider(scrapy.Spider):
         
         #次のページがあるかどうか
         next_page = response.css('div.p-pagination_next > a.button')
-        print(next_page)
+        print("next page", next_page)
         if next_page.get() is not None:
             print("#####next page#####")
             next_page_url = response.urljoin(next_page.css('a::attr(href)').extract_first())
             print(next_page_url)
-            yield scrapy.Request(next_page_url, callback=self.request_parse, errback=self.error_process)
-
+            return scrapy.Request(next_page_url, callback=self.request_parse, errback=self.error_process)
+        else:
+            print("#####no next page#####")
+            return None
     
     def parse(self, response):
         #TODO:未抽出項目の追加、修正。
@@ -492,23 +496,30 @@ class EkitenspiderSpider(scrapy.Spider):
             str: カテゴリページクラスのURL
         """
         #city_url_listに格納されたURLに従い、クロール対象カテゴリURLを作成する。
-        url_list: list[str] = []
-        genre_keys: const = Genre.GENLE_LIST.keys()
-        
-        for pref_city_str, genre_key in zip(self.pref_city_strs ,genre_keys):
-            """
-            url: 市区町村レベルのURL(Ex: https://www.ekiten.jp/area/a_city36204/)
-            genre_key: ジャンルのキー
-            """
-            categories: const[list[str]] = self.__get_category_strs(genre_key)
+        urls: list[str] = []
+        for pref_city_str in self.pref_city_strs:
+            
+            urls.extend(self.__get_urls(pref_city_str))
+            
+        return urls
+    
+    
+    def __get_urls(self, area_str: str) -> list[str]:
+        """_summary_\n
+        1エリアのURLを生成。
+        """
+        genre_keys: const[list[str]] = list(Genre.GENLE_LIST.keys())
+        urls: list[str] = []
+        for key in genre_keys:
+            
+            categories: const[list[str]] = self.__get_category_strs(key)
             for category in categories:
                 #クロール対象URLの生成
-                generate_url: const[str] = "https://www.ekiten.jp/" + category + "/" + pref_city_str 
-                url_list.append(generate_url)
+                url: const[str] = "https://www.ekiten.jp/" + category + "/" + area_str
+                urls.append(url)
         
-        return url_list
-    
-    
+        return urls
+
     def __get_category_strs(self, key:str) -> list[str]:
         """_summary_\n
         指定キーのカテゴリの接頭辞のリストを返す。
