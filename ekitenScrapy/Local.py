@@ -1,5 +1,8 @@
 from __future__ import annotations
+from typing import Type, TypeVar, Final as const
 import os
+
+T: const[Type] = TypeVar("T")
 
 def ArrayElementsReplace(array: list[str], target_str: str, replace_str:str) -> list[str]:
     """[summary]
@@ -92,15 +95,23 @@ def process_join(apply_results: list):
                 
 def list_split(n:int, l:list) -> list[list]: #TODO:Type annotationを加える。ジェネリックで。
     """Summary Line:\n
-    リストを指定数に分割する。
+    リスト内の要素をn個のリストに格納する\n
     Args:\n
         n (int): 分割数\n
         l (list): 分割対象のリスト\n
     Returns:\n
-        list: 分割されたリスト要素を格納したlist\n
+        list: nこのリストに分けられた2次元リスト\n
     """
-    result = []
-    for i in range(0, len(l), n):
-        add = l[i:i + n]
-        result.append(add)
+    result:list[list] = []
+    for i in range(n):
+        result.append([])
+    for i in range(len(l)):
+        result[i % n].append(l[i])
     return result
+
+
+if __name__ == "__main__":
+    
+    t = [1,2,3,4,5,6,7,8,9,10]
+    t2 = list_split(2, t)
+    print(t2)
