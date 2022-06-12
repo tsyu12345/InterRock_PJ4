@@ -8,7 +8,9 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings 
 from scrapy.settings import Settings
 from RequestTotalCount import RequestTotalCount
+from Local import list_split
 from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
+from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
 #共有メモリのインポート
 from multiprocessing.managers import SyncManager, ValueProxy
@@ -36,6 +38,7 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
     FEED_EXPORT_FIELDS: const[list[str]] = [item_key for item_key in COLUMN_MENUS.keys()]
     FILE_FORMAT: const[str] = 'xlsx'
     FILE_EXTENSION: const[str] = '.' + FILE_FORMAT
+    TEMP_DIR: const[str] = "./temp"
     
     def __init__(self, pref_list:list[str], save_path:str, junle:str):
         """_summary_\n
@@ -64,32 +67,39 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         self.progress_num:ValueProxy[int] = maneger.Value('i', 0) #進捗状況の表示用    
         
         #middlewareインスタンスの生成
-        self.middleware = SeleniumMiddlewares(self.pref_list, 4, self.progress_num)
+        self.middleware = SeleniumMiddlewares(self.pref_list, self.progress_num)
         self.crawler = CrawlerProcess(self.settings)
         
         #分散クロール結果の一時保存先を格納したリスト
         self.crawler_temp_save_list:list[str] = []
     
-    def __start_crawler(self, crawler_url_list:list[list[str]]) -> None:
+    def __start_crawler(self, crawler_url_list:list[str], crawler_process_count:int) -> None:
         """_summary_\n
         分散クロール用に追加されるクローラーごとに異なる設定のクローラー設定を用意し、Scrapyに予約する。
+        Args:\n
+            crawler_url_list(list[str]): クロールするURLのリスト\n
+            crawler_process_count(int): クローラーのプロセス数\n
         """
-        for crawler_id, url_list in enumerate(crawler_url_list):
-            filename: str = './temp/crawler_temp_save_' + str(crawler_id+1)
+        crawl_list: list[list[str]] = list_split(crawler_process_count, crawler_url_list)        
+        
+        for crawler_id, url_list in enumerate(crawl_list):
+            filename: str = self.TEMP_DIR + "/" + 'crawler_temp_save_' + str(crawler_id+1)
+            print("CRAWL AREA LIST:", url_list)
             self.crawler.crawl(
-                'ekitenSpider', 
+                EkitenspiderSpider,
                 self.counter, 
                 self.loading_flg, 
                 self.end_flg, 
-                url_list,
+                url_list, #type: list[str]
                 comment='test',
                 filename=filename,
             )
             filename = filename + self.FILE_EXTENSION #拡張子をつけてからリストへ格納。
-            print("crawler_id:", filename)
+            
             self.crawler_temp_save_list.append(filename)
         
-        self.crawler.start() 
+        self.crawler.start()
+        
         
     def run(self) -> None:
         """[summary]\n
@@ -104,24 +114,18 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         print("totalCount: "+str(count))
         self.total_counter.value = count
         result = self.middleware.run()
-        #print("result: "+str(len(result[0])))
-        #result = list_split(4, result)#4つのクローラーで並列できるように分割
         self.progress_num.value += 1
         
         #試験用
         """
         result = [
-            ['https://www.ekiten.jp/shop_88106804/', 'https://www.ekiten.jp/shop_89135856/', 'https://www.ekiten.jp/shop_42622487/'],
-            ['https://www.ekiten.jp/shop_2869541/', 'https://www.ekiten.jp/shop_2933537/', 'https://www.ekiten.jp/shop_2883346/'],
-            ['https://www.ekiten.jp/shop_11915211/', 'https://www.ekiten.jp/shop_7145303/', 'https://www.ekiten.jp/shop_6634217/'],
-            ['https://www.ekiten.jp/shop_23136354/', 'https://www.ekiten.jp/shop_6634217/', 'https://www.ekiten.jp/shop_28456450/'],
+            "tokushima/ananshi/",
         ]
         """
-        
-        self.__start_crawler(result)
+        self.__start_crawler(result, 4)
         print("crawler exit")
+        
         self.progress_num.value += 1
-        print(self.crawler_temp_save_list)
         self.__save_crawl_result()
         
     def stop(self):
@@ -146,6 +150,6 @@ if __name__ == "__main__":
     GUIなしで実行する場合に使用する。
     """
     print("SPIDER START")
-    test = SpiderCall(["徳島県"], "./result.xlsx", "NONE")
+    test = SpiderCall(["徳島県"], "./TEST.xlsx", "NONE")
     test.run()
     print("SPIDER END")
