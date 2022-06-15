@@ -94,16 +94,24 @@ class EkitenspiderSpider(scrapy.Spider):
         #self.start_urls = self.search(response)
         self.loading_flg.value = True
         self.RETEYED = 0 #成功したらリトライカウントをリセット
-        store_elms = response.css('div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a')
-        print(store_elms)
+
+        store_elms = response.css('div.box.p-shop_box > div.layout_media.p-shop_box_head > div.layout_media_wide > div > h2 > a')
+        print("STORE_ELMS:", len(store_elms))
+        exlude_storeElms_flag = response.css("h2.heading.border.lv2")
+        print(exlude_storeElms_flag)
+        if len(exlude_storeElms_flag) != 0:
+            store_elms = response.xpath("/html/body/div[@class='l-wrapper']/div/div[@class='l-contents_wrapper']/main/h2[@class='heading border lv2']/preceding-sibling::div/div[@class='layout_media p-shop_box_head']/div[@class='layout_media_wide']/div/h2/a")
+            print("EX STORE_ELMS:", len(store_elms))
+            
         for elm in store_elms:
             href:str = elm.css('a::attr(href)').extract_first()
             url:str = response.urljoin(href)
-            #if url not in self.CRAWLED_URL:#重複スクレイピング対策
-            self.CRAWLED_URL.append(url)
-            yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
-            print("call store info scraping..")
-        
+            if url not in self.CRAWLED_URL:#重複スクレイピング対策
+                self.CRAWLED_URL.append(url)
+                print("CRAWLED LEN:", len(self.CRAWLED_URL))
+                yield scrapy.Request(url, callback=self.parse, errback=self.error_process)
+                print("call store info scraping..")
+            
         #次のページがあるかどうか
         next_page = response.css('div.p-pagination_next > a.button')
         print("next page", next_page)
@@ -316,6 +324,11 @@ class EkitenspiderSpider(scrapy.Spider):
         self.loading_flg.value = True
         print("####400 error catch####")
         response: Response = failure.value.response
+        
+        if response.status == 404:
+            print("####404 error catch####")
+            return None
+        
         yield scrapy.Request(response.url, callback=self.__restart_crawl, errback=self.__crawl_pause)
         
     
@@ -512,6 +525,7 @@ class EkitenspiderSpider(scrapy.Spider):
         1エリアのURLを生成。
         """
         genre_keys: const[list[str]] = list(Genre.GENLE_LIST.keys())
+        #genre_keys = ["リラク・ボディケア"] #<- TEST CODE
         urls: list[str] = []
         for key in genre_keys:
             

@@ -58,7 +58,8 @@ class JisCode:
     def __init__(self) -> None:
         pass
     
-    def get_jis_code(self, prefecture_name:str) -> int:
+    @classmethod
+    def get_jis_code(cls, prefecture_name:str) -> int:
         """_summary_\n
         都道府県名からJISコードを取得する。\n
         Args:\n
@@ -66,10 +67,11 @@ class JisCode:
         Returns:\n
             int: JISコード\n
         """
-        jiscode:int = self.JISCODE_DICT[prefecture_name]
+        jiscode:int = cls.JISCODE_DICT[prefecture_name]
         return jiscode
     
-    def get_prefecture_name(self, jis_code:int) -> str:
+    @classmethod
+    def get_prefecture_name(cls, jis_code:int) -> str:
         """_summary_\n
         JISコードから都道府県名を返す\n
         Args:\n
@@ -79,7 +81,7 @@ class JisCode:
             str: 都道府県名\n
         """
         prefecture_name:str = ""
-        for prefecture_name, jis_code_ in self.JISCODE_DICT.items():
+        for prefecture_name, jis_code_ in cls.JISCODE_DICT.items():
             if jis_code_ == jis_code:
                 prefecture_name = prefecture_name
                 break
