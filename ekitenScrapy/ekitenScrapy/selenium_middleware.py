@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Final as const
+from typing import Any, Final as const, Type, TypeVar, List
 
 from abc import ABCMeta, abstractmethod
 from multiprocessing.managers import ValueProxy
@@ -29,6 +29,10 @@ class AbsExtraction(object, metaclass=ABCMeta):
     RESTART_WAIT_TIME:int = 300 #秒
     
     def __init__(self):
+        """_summary_\n
+        Args:\n
+            area (str): ターゲットのエリア文字列
+        """
         #driver_absolute_path:str = chromedriver_binary.chromedriver_filename 
         #self.driver_path:const[str] = resource_path("../../bin/chromedriver.exe")
         self.driver_path = "../bin/chromedriver.exe"
@@ -50,6 +54,7 @@ class AbsExtraction(object, metaclass=ABCMeta):
         #browser_path = resource_path('../../bin/chrome-win/chrome.exe')
         browser_path = '../bin/chrome-win/chrome.exe'
         self.options.binary_location = browser_path
+        
         
     @abstractmethod
     def extraction(self) -> list:
@@ -75,9 +80,14 @@ class BrowserRetryError(Exception):
         
 class CityUrlExtraction(AbsExtraction):
     #TODO:並列処理による高速化。
-    def __init__(self):
+    def __init__(self, area: str):
+        """_summary_\n
+        Args:\n
+            area (str): ターゲット都道府県
+        """
         super().__init__()
         self.driver = webdriver.Chrome(executable_path=self.driver_path, options=self.options)
+        self.target_area = area
     
         
     def __CityLinkExtraction(self, pref_code:int) -> list[str]:
@@ -92,7 +102,7 @@ class CityUrlExtraction(AbsExtraction):
         urls:list[str] = []
         
         def get_href() -> None:
-            self.driver.get(url)
+            self.driver.get(url) 
             wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
             link_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a')
@@ -100,7 +110,7 @@ class CityUrlExtraction(AbsExtraction):
             for tag in link_tags:
                 urls.append(tag.get_attribute('href'))
         
-        #FIXME:selenium timeout Exception が発生する↓。 <-403 サーバーブロックが原因
+        
         for retry_counter in range(self.RETRY_UPPER_LIMIT):
             try:
                 get_href()
@@ -112,12 +122,13 @@ class CityUrlExtraction(AbsExtraction):
             else:
                 break
         else:
+            self.driver.quit()
             raise BrowserRetryError("市区町村レベルのリンク抽出に失敗しました。")
             
         self.driver.quit()
         return urls
         
-    def extraction(self, pref_name:str) -> list[str]:
+    def extraction(self) -> list[str]:
         """Summary Line.\n
         指定都道府県のリンクを取得し、そのリストを返却する。\n
         メソッド__CityLinkExtraction()の呼び出し処理。\n
@@ -127,8 +138,7 @@ class CityUrlExtraction(AbsExtraction):
         Returns:\n
             list:市区町村レベルのリンクのリスト[url, url,....]\n
         """
-        jis = JisCode()
-        jis_code:int = jis.get_jis_code(pref_name)
+        jis_code:int = JisCode.get_jis_code(self.target_area)
         url_list = self.__CityLinkExtraction(jis_code)
         return url_list
     
@@ -195,11 +205,11 @@ class SeleniumMiddlewares(): #TODO:small_junle_extractionの廃止。と[都道�
         Returns:
             list[str]
         """
-        city_extraction = CityUrlExtraction()
         
         for area in self.area_list:
             
-            city_urls: list[str] = city_extraction.extraction(area)
+            city_extraction = CityUrlExtraction(area)
+            city_urls: list[str] = city_extraction.extraction()
             
             area_url_extraction = AreaUrlExtraction(city_urls)
             self.results.extend(area_url_extraction.extraction())
@@ -221,5 +231,8 @@ if __name__ == '__main__':
     print(newlist)
     """
     #Test call
-    t = AreaUrlExtraction(["https://www.ekiten.jp/area/a_city36204/"])
-    t.extraction()
+    #t = AreaUrlExtraction(["https://www.ekiten.jp/area/a_city36204/"])
+    #t.extraction()
+    t = CityUrlExtraction("鳥取県")
+    tr = t.extraction()
+    print(tr)

@@ -119,9 +119,10 @@ class SpiderCall(): #TODO:中止処理の追加, CrawlerProcessの並列実行
         #試験用
         """
         result = [
-            "tokushima/ananshi/",
+            "tottori/iwamigun/"
         ]
         """
+        
         self.__start_crawler(result, 4)
         print("crawler exit")
         
@@ -150,6 +151,6 @@ if __name__ == "__main__":
     GUIなしで実行する場合に使用する。
     """
     print("SPIDER START")
-    test = SpiderCall(["徳島県"], "./TEST.xlsx", "NONE")
+    test = SpiderCall(["徳島県", "鳥取県"], "./TEST.xlsx", "NONE")
     test.run()
     print("SPIDER END")
