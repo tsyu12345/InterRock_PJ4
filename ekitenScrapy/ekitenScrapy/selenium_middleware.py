@@ -92,7 +92,7 @@ class CityUrlExtraction(AbsExtraction):
         urls:list[str] = []
         
         def get_href() -> None:
-            self.driver.get(url)
+            self.driver.get(url) #FIXME:複数エリア抽出時にHTTPConectionErrorが発生する。
             wait = WebDriverWait(self.driver, 20) #waitオブジェクトの生成, 最大20秒待機
             wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'l-side_contents_search_tooltip_inner')))
             link_tags = self.driver.find_elements_by_css_selector('body > div.l-wrapper > div > div.l-contents_wrapper > div > nav > div:nth-child(1) > ul > li:nth-child(2) > div > div > div > div > div > ul > li > div.grouped_list_body > ul > li > a')
