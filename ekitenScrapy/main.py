@@ -4,13 +4,13 @@ from typing import Any,  Final as const
 
 #GUI関係のインポート
 import PySimpleGUI as gui
-from StartUpWindow import StartUpWindow, SelectPrefectureWindow
-from RuntimeWindow import RuntimeWindow
+from GUI.StartUpWindow import StartUpWindow, SelectPrefectureWindow
+from GUI.RuntimeWindow import RuntimeWindow
 import sys
 #import traceback
 
 #Scrapy
-from SpiderAPI import SpiderCall
+from SpiderModule.SpiderAPI import SpiderCall
 
 #スレッド関係のインポート
 from multiprocessing import freeze_support

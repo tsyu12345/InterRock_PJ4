@@ -1,5 +1,5 @@
 from __future__ import annotations
-from AbstractGUI import *
+from .AbstractGUI import *
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
 

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import imp
 from typing import Any, Final as const, Type, TypeVar, List
 
 from abc import ABCMeta, abstractmethod
@@ -11,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 
 from .JisCode import JisCode
-
+from .funcs import resource_path
 import time
 
 
@@ -28,6 +29,9 @@ class AbsExtraction(object, metaclass=ABCMeta):
     RETRY_UPPER_LIMIT:int = 3
     RESTART_WAIT_TIME:int = 300 #秒
     
+    DRIVER_PATH: const[str] = "../../Lib/bin/chromedriver.exe"
+    BROWSER_PATH: const[str] = "../../Lib/bin/chrome-win/chrome.exe"
+    
     def __init__(self):
         """_summary_\n
         Args:\n
@@ -35,8 +39,9 @@ class AbsExtraction(object, metaclass=ABCMeta):
         """
         #driver_absolute_path:str = chromedriver_binary.chromedriver_filename 
         #self.driver_path:const[str] = resource_path("../../bin/chromedriver.exe")
-        self.driver_path = "../bin/chromedriver.exe"
-        print(self.driver_path)
+        #self.driver_path = "../bin/chromedriver.exe"
+        #print(self.driver_path)
+        self.driver_path = resource_path(self.DRIVER_PATH)
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
@@ -52,8 +57,8 @@ class AbsExtraction(object, metaclass=ABCMeta):
         prefs = {"profile.default_content_setting_values.notifications": 2}
         self.options.add_experimental_option("prefs", prefs)
         #browser_path = resource_path('../../bin/chrome-win/chrome.exe')
-        browser_path = '../bin/chrome-win/chrome.exe'
-        self.options.binary_location = browser_path
+        #browser_path = '../bin/chrome-win/chrome.exe'
+        self.options.binary_location = resource_path(self.BROWSER_PATH)
         
         
     @abstractmethod

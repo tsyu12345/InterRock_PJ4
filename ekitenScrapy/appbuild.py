@@ -92,9 +92,9 @@ class AppBuild():
 if __name__ == "__main__":
     
     buildParam = BuildParamInterface(
-        "ekitenScrapy/main.py",
-        icon="1258d548c5548ade5fb2061f64686e40_xxo.ico",
-        binarys=["bin"],
+        "main.py",
+        icon="Lib/icons/1258d548c5548ade5fb2061f64686e40_xxo.ico",
+        binarys=["Lib"],
         compile_one_file=False,
         hidden_import=[
             'scrapy.spiderloader', 

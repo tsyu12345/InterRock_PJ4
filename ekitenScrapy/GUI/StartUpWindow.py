@@ -1,5 +1,5 @@
 from __future__ import annotations
-from AbstractGUI import *
+from .AbstractGUI import *
 import PySimpleGUI as gui
 from PySimpleGUI.PySimpleGUI import T, Window, popup, popup_error
 
@@ -63,7 +63,7 @@ class PathSelect(AbsGUIComponent):
     INPUT_KEY:str = "Path"
     TITLE_KEY:str = 'path_title'
     
-    def _lay_out(self) -> list[list[gui.Text], list[gui.InputText, gui.Button]]:
+    def _lay_out(self) -> list[list[gui.Text], list[gui.InputText | gui.Button]]:
         L = [
             [gui.Text("フォルダ選択", key=self.TITLE_KEY, size=(60, None))],
             [gui.InputText(key=self.INPUT_KEY), gui.SaveAs("選択", file_types=( [('Excelファイル','*.xlsx')]))]
@@ -151,7 +151,7 @@ class StartUpWindow(AbsWindowComponent):
         self.window = gui.Window(
             application_name + self.CUSTOM_WINDOW_TITLE, 
             layout=self.layout,
-            icon='1258d548c5548ade5fb2061f64686e40_xxo.ico',
+            icon='Lib/icons/1258d548c5548ade5fb2061f64686e40_xxo.ico',
             debugger_enabled=True,
         )
         

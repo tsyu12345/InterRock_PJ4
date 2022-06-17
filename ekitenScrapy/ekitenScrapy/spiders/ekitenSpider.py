@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import Any, Callable, Final as const
 from multiprocessing.managers import ValueProxy
-from unicodedata import category
 from scrapy.http import Response
 
 import scrapy
@@ -16,10 +15,10 @@ import re
 from ekitenScrapy.items import EkitenscrapyItem
 from ekitenScrapy.spiders.GenleDef import Genre
 
-from ..JisCode import JisCode
 import sys
 sys.path.append('../')
-from Local import *
+from ..Modules.JisCode import JisCode
+
 
 #TODO:エラーハンドリング。
 
@@ -367,6 +366,7 @@ class EkitenspiderSpider(scrapy.Spider):
     
     
     def __extraction_work_time(self, response) -> str|None:
+        #TODO:Returnの配置を見直すこと。
         """[summary]\n
         ヘッダー部分の営業時間を抽出する。
         Args:\n
@@ -380,11 +380,10 @@ class EkitenspiderSpider(scrapy.Spider):
             menu = tag_selector.css('span.p-shop_header_access_label::text').extract_first()
             if "営業時間" in menu:
                 business_time_elm = tag_selector.css('ul > li::text').extract()
-                time_list = ArrayElementsReplace(business_time_elm, " ", "")
-                time_list = ArrayElementsReplace(time_list, "\n", "")
-                business_time = ArrayStrsToOneStr(time_list)
+                time_list = self.__ArrayElementsReplace(business_time_elm, " ", "")
+                time_list = self.__ArrayElementsReplace(time_list, "\n", "")
+                business_time = self.__ArrayStrsToOneStr(time_list)
                 
-                #print(business_time)
                 return business_time
             
                 
@@ -427,8 +426,8 @@ class EkitenspiderSpider(scrapy.Spider):
                 
                 else:
                     result_list.append(elm.css('td::text').extract_first()) 
-                    result_list = ArrayElementsReplace(result_list, "\n", "")
-                    result_list = ArrayElementsReplace(result_list, "  ", "")
+                    result_list = self.__ArrayElementsReplace(result_list, "\n", "")
+                    result_list = self.__ArrayElementsReplace(result_list, "  ", "")
 
         #print(result_list)
         return result_list
@@ -544,3 +543,34 @@ class EkitenspiderSpider(scrapy.Spider):
             list[str]\n
         """
         return list(Genre.GENLE_LIST[key].values())
+    
+    @classmethod
+    def __ArrayElementsReplace(cls, array: list[str], target_str: str, replace_str:str) -> list[str]:
+        """[summary]
+        配列の要素の指定文字列を指定文字列に置換する。
+        Arguments:
+            array {list} -- 配列
+            target_str {str} -- 置換対象文字列
+            replace_str {str} -- 置換文字列
+        
+        Returns:
+            list -- replace_strで置換した配列
+        """
+        for i in range(len(array)):
+            array[i] = array[i].replace(target_str, replace_str)
+        return array
+    
+    @classmethod
+    def __ArrayStrsToOneStr(cls, array:list[str]):
+        """[summary]
+        配列の要素を一つの文字列にする。
+        Arguments:
+            array {list} -- 配列
+        
+        Returns:
+            str -- 配列の要素を一つの文字列にする。
+        """
+        str = ""
+        for i in range(len(array)):
+            str += array[i] + " "
+        return str

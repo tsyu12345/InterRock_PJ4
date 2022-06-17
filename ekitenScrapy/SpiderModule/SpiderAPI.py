@@ -7,9 +7,9 @@ from typing import Any, Optional, Iterator, Final as const
 from scrapy.crawler import CrawlerProcess 
 from scrapy.utils.project import get_project_settings 
 from scrapy.settings import Settings
-from RequestTotalCount import RequestTotalCount
-from Local import list_split
-from ekitenScrapy.selenium_middleware import SeleniumMiddlewares
+from .RequestTotalCount import RequestTotalCount
+from .Local import list_split
+from ekitenScrapy.Modules.selenium_middleware import SeleniumMiddlewares
 from ekitenScrapy.spiders.ekitenSpider import EkitenspiderSpider
 
 #共有メモリのインポート
@@ -19,7 +19,7 @@ from multiprocessing.managers import SyncManager, ValueProxy
 from multiprocessing import Manager
 
 #ワークシート関係
-from WorkBook import WorkBook, COLUMN_MENUS
+from .WorkBook import WorkBook, COLUMN_MENUS
 
 #other
 import time

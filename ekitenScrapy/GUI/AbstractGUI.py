@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Iterator, Optional, Final as const
+from typing import Any, Final as const, Callable
 from abc import ABCMeta, abstractmethod
 from PySimpleGUI.PySimpleGUI import Window
 
@@ -22,13 +22,13 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
     """
     
     def __init__(self, window_name=None)-> None:
-        self.event_handler:dict[str, list[callable , tuple]] = {}
+        self.event_handler:dict[str, list[Callable | tuple]] = {} #TODO:EventHandlerオブジェクトの定義をつくり、それで注釈する。
         self.event:str = ""
         self.value:dict[str, str] = {}
         self.window:Window = Window(window_name)
     
     @abstractmethod
-    def _lay_out(self) -> list[list[any]]:
+    def _lay_out(self) -> list[list[Any]]:
         """_summary_\n
         レイアウト配列を返す\n
         Returns:\n
@@ -36,7 +36,7 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
         """
         pass
     
-    def addEventListener(self, key:str, callback:callable, *args) -> None:
+    def addEventListener(self, key:str, callback:Callable, *args) -> None:
         """_summary_\n
         イベントリスナーを設定する。\n
         Args:\n
@@ -53,7 +53,7 @@ class AbsWindowComponent(object, metaclass=ABCMeta):
         """
         if self.event in self.event_handler:
             
-            callback:callable = self.event_handler[self.event][0]
+            callback:Callable = self.event_handler[self.event][0]
             args:tuple = self.event_handler[self.event][1]
             
             if args == ():
