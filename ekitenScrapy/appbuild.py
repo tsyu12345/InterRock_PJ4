@@ -94,7 +94,7 @@ if __name__ == "__main__":
     buildParam = BuildParamInterface(
         "main.py",
         icon="Lib/icons/1258d548c5548ade5fb2061f64686e40_xxo.ico",
-        binarys=["Lib"],
+        binarys=["Lib", 'scrapy.cfg'],
         compile_one_file=False,
         hidden_import=[
             'scrapy.spiderloader', 
@@ -148,7 +148,6 @@ if __name__ == "__main__":
             'scrapy_xlsx',
             'ekitenScrapy.settings', 
             'ekitenScrapy.spiders',
-            'chromedriver_binary'
         ]
     )
     

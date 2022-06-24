@@ -41,7 +41,8 @@ class AbsExtraction(object, metaclass=ABCMeta):
         #self.driver_path:const[str] = resource_path("../../bin/chromedriver.exe")
         #self.driver_path = "../bin/chromedriver.exe"
         #print(self.driver_path)
-        self.driver_path = resource_path(self.DRIVER_PATH)
+        self.driver_path: const[str] = resource_path(self.DRIVER_PATH)
+        print("DRIVER_PATH: " + self.driver_path)
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("start-maximized")
         self.options.add_argument("enable-automation")
@@ -58,7 +59,9 @@ class AbsExtraction(object, metaclass=ABCMeta):
         self.options.add_experimental_option("prefs", prefs)
         #browser_path = resource_path('../../bin/chrome-win/chrome.exe')
         #browser_path = '../bin/chrome-win/chrome.exe'
-        self.options.binary_location = resource_path(self.BROWSER_PATH)
+        self.browser_path:const[str] = resource_path(self.BROWSER_PATH)
+        self.options.binary_location = self.browser_path
+        print("BROWSER_PATH: " + self.browser_path)
         
         
     @abstractmethod
