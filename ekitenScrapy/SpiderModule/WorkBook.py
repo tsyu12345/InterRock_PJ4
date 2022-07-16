@@ -128,7 +128,7 @@ class WorkBook(AbsWorkBook):
         """
         origin_sheet_rows: Iterator[Any] = book.worksheets[0].rows #type: ignore
         write_start_row: int = self.worksheet.max_row + 1 #type: ignore
-        for i, row in enumerate(origin_sheet_rows):
+        for i, row in enumerate(origin_sheet_rows): #FIXME:MemoryError i = 8795 write_start_row = 106156
             if i == 0: #ヘッダー行はコピーしない
                 continue
             self.__cell_copy(write_start_row, row)
