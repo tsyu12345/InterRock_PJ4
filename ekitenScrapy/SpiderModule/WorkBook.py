@@ -68,7 +68,7 @@ class AbsWorkBook(object, metaclass=ABCMeta):
     
     def __init__(self, save_file_path:str, crawl_file_path_list:list[str]) -> None:
         
-        self.file_path:const[str] = save_file_path #最終的に保存するファイルのパス
+        self.save_file_path:const[str] = save_file_path #最終的に保存するファイルのパス
         self.distributed_files_list:const[list[str]] = crawl_file_path_list[1:len(crawl_file_path_list)] #分割したファイルのパスリスト
         self.all_file_list: list[str] = crawl_file_path_list #全てのファイルのパスリスト
         print(self.distributed_files_list)
@@ -99,7 +99,7 @@ class AbsWorkBook(object, metaclass=ABCMeta):
         
     
     def save(self):
-        self.book.save(self.file_path)
+        self.book.save(self.save_file_path)
         
 
 class WorkBook(AbsWorkBook):
@@ -131,13 +131,24 @@ class WorkBook(AbsWorkBook):
         for i, row in enumerate(origin_sheet_rows): #FIXME:MemoryError i = 8795 write_start_row = 106156
             if i == 0: #ヘッダー行はコピーしない
                 continue
+            #MemoryError対策で2000行に一度、一時保存する。
+            if i % 2000 == 0:
+                self.__temp_savefile()
+                
             self.__cell_copy(write_start_row, row)
             write_start_row += 1
+            
+            
+    def __temp_savefile(self) -> None:
+        self.book.save(self.save_file_path)
+        #reopen the file
+        self.book = pyxl.load_workbook(self.save_file_path)
     
     
     def __cell_copy(self, write_row: int,row_values: Iterator[Any]):
         for i, value in enumerate(row_values):
             self.worksheet.cell(row=write_row, column=i + 1, value=value.value)
+    
     
     def __loadBook(self, filename: str) -> pyxl.Workbook:
         book:pyxl.Workbook = pyxl.load_workbook(filename)
